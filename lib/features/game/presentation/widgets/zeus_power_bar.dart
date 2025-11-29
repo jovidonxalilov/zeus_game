@@ -8,73 +8,85 @@ class ZeusPowerBar extends StatelessWidget {
   final int energy;
   final int maxEnergy;
   final Function(ZeusPower power, int? row, int? col) onPowerUsed;
-  
+
   const ZeusPowerBar({
     super.key,
     required this.energy,
     required this.maxEnergy,
     required this.onPowerUsed,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: AppTheme.goldenBorder,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFD700),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFF8C00), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFD700).withOpacity(0.3),
+            blurRadius: 10,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Energy bar
+          // Energy bar - compact
           Row(
             children: [
               Icon(
                 Icons.flash_on,
-                color: AppConstants.electricBlue,
-                size: 24,
+                color: const Color(0xFF00BFFF),
+                size: 20,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Zeus Energiyasi',
-                      style: TextStyle(
-                        color: AppConstants.primaryGold,
-                        fontSize: 14,
+                      'ZEUS ENERGIYASI',
+                      style: const TextStyle(
+                        color: Color(0xFF8B4513),
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(6),
                       child: LinearProgressIndicator(
                         value: energy / maxEnergy,
-                        minHeight: 10,
-                        backgroundColor: AppConstants.darkPurple.withOpacity(0.3),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppConstants.electricBlue,
+                        minHeight: 6,
+                        backgroundColor: const Color(0xFF8B4513).withOpacity(0.3),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFF00BFFF),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Text(
                 '$energy/$maxEnergy',
-                style: TextStyle(
-                  color: AppConstants.electricBlue,
-                  fontSize: 16,
+                style: const TextStyle(
+                  color: Color(0xFF00BFFF),
+                  fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          
-          const SizedBox(height: 16),
-          
-          // Powers
+
+          const SizedBox(height: 10),
+
+          // Powers - compact
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -112,7 +124,7 @@ class ZeusPowerBar extends StatelessWidget {
       ),
     ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.2, duration: 500.ms);
   }
-  
+
   Widget _buildPowerButton({
     required BuildContext context,
     required ZeusPower power,
@@ -121,79 +133,88 @@ class ZeusPowerBar extends StatelessWidget {
     required int cost,
   }) {
     final isEnabled = energy >= cost;
-    
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: isEnabled
-              ? () {
-                  if (power == ZeusPower.thunderStrike) {
-                    // Need to select column
-                    _showColumnSelector(context, power);
-                  } else if (power == ZeusPower.skyWingsDash) {
-                    // Need to select position
-                    _showPositionSelector(context, power);
-                  } else {
-                    // Direct use
-                    onPowerUsed(power, null, null);
-                  }
+
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              onTap: isEnabled
+                  ? () {
+                if (power == ZeusPower.thunderStrike) {
+                  _showColumnSelector(context, power);
+                } else if (power == ZeusPower.skyWingsDash) {
+                  _showPositionSelector(context, power);
+                } else {
+                  onPowerUsed(power, null, null);
                 }
-              : null,
-          child: Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: isEnabled
-                  ? AppConstants.primaryGold.withOpacity(0.2)
-                  : AppConstants.darkPurple.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isEnabled
-                    ? AppConstants.primaryGold
-                    : AppConstants.darkPurple,
-                width: 2,
+              }
+                  : null,
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: isEnabled
+                      ? const Color(0xFF8B4513).withOpacity(0.3)
+                      : const Color(0xFF4B0082).withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isEnabled
+                        ? const Color(0xFF8B4513)
+                        : const Color(0xFF4B0082),
+                    width: 2,
+                  ),
+                  boxShadow: isEnabled
+                      ? [
+                    BoxShadow(
+                      color: const Color(0xFF8B4513).withOpacity(0.4),
+                      blurRadius: 6,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                      : [],
+                ),
+                child: Icon(
+                  icon,
+                  color: isEnabled
+                      ? const Color(0xFF8B4513)
+                      : const Color(0xFF4B0082),
+                  size: 24,
+                ),
               ),
-              boxShadow: isEnabled
-                  ? [
-                      BoxShadow(
-                        color: AppConstants.primaryGold.withOpacity(0.5),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ]
-                  : [],
             ),
-            child: Icon(
-              icon,
-              color: isEnabled
-                  ? AppConstants.primaryGold
-                  : AppConstants.darkPurple,
-              size: 32,
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isEnabled
+                    ? const Color(0xFF8B4513)
+                    : const Color(0xFF4B0082),
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ).animate(target: isEnabled ? 1 : 0).shimmer(duration: 2.seconds),
+            Text(
+              '$cost⚡',
+              style: TextStyle(
+                color: isEnabled
+                    ? const Color(0xFF00BFFF)
+                    : const Color(0xFF4B0082),
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: isEnabled ? Colors.white : Colors.white38,
-            fontSize: 10,
-          ),
-        ),
-        Text(
-          '$cost⚡',
-          style: TextStyle(
-            color: isEnabled
-                ? AppConstants.electricBlue
-                : AppConstants.darkPurple,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
+      ),
     );
   }
-  
+
   void _showColumnSelector(BuildContext context, ZeusPower power) {
     showDialog(
       context: context,
@@ -243,7 +264,7 @@ class ZeusPowerBar extends StatelessWidget {
       ),
     );
   }
-  
+
   void _showPositionSelector(BuildContext context, ZeusPower power) {
     showDialog(
       context: context,

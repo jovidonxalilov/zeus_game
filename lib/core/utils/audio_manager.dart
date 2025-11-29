@@ -5,60 +5,80 @@ class AudioManager {
   static final AudioManager _instance = AudioManager._internal();
   factory AudioManager() => _instance;
   AudioManager._internal();
-  
+
   final AudioPlayer _musicPlayer = AudioPlayer();
   final AudioPlayer _sfxPlayer = AudioPlayer();
-  
+
   bool _musicEnabled = true;
   bool _sfxEnabled = true;
   double _musicVolume = 0.7;
   double _sfxVolume = 1.0;
-  
+
+  String? _currentMusicTrack; // Track currently playing music
+  bool _isMusicPlaying = false; // Track music state
+
   // Getters
   bool get musicEnabled => _musicEnabled;
   bool get sfxEnabled => _sfxEnabled;
   double get musicVolume => _musicVolume;
   double get sfxVolume => _sfxVolume;
-  
+
   /// Initialize audio
   Future<void> initialize() async {
     try {
       await _musicPlayer.setReleaseMode(ReleaseMode.loop);
       await _sfxPlayer.setReleaseMode(ReleaseMode.stop);
+
+      // Listen to music player state
+      _musicPlayer.onPlayerStateChanged.listen((state) {
+        _isMusicPlaying = state == PlayerState.playing;
+      });
     } catch (e) {
       print('Audio initialization warning: $e');
       // Don't throw error, just log
     }
   }
-  
+
   /// Play background music
   Future<void> playMusic(String assetPath) async {
     if (!_musicEnabled) return;
-    
+
+    // Check if this track is already playing
+    if (_currentMusicTrack == assetPath && _isMusicPlaying) {
+      print('Music already playing: $assetPath');
+      return;
+    }
+
     try {
       await _musicPlayer.stop();
       await _musicPlayer.setVolume(_musicVolume);
       // Try to play, but don't crash if file doesn't exist
       await _musicPlayer.play(AssetSource(assetPath));
+      _currentMusicTrack = assetPath;
+      _isMusicPlaying = true;
     } catch (e) {
       print('Warning: Could not play music: $assetPath. Error: $e');
+      _currentMusicTrack = null;
+      _isMusicPlaying = false;
       // Silently fail - game continues without music
     }
   }
-  
+
   /// Stop background music
   Future<void> stopMusic() async {
     try {
       await _musicPlayer.stop();
+      _currentMusicTrack = null;
+      _isMusicPlaying = false;
     } catch (e) {
       print('Warning: Could not stop music: $e');
     }
   }
-  
+
   /// Play sound effect
   Future<void> playSfx(String assetPath) async {
     if (!_sfxEnabled) return;
-    
+
     try {
       await _sfxPlayer.setVolume(_sfxVolume);
       // Try to play, but don't crash if file doesn't exist
@@ -68,7 +88,7 @@ class AudioManager {
       // Silently fail - game continues without sound
     }
   }
-  
+
   /// Toggle music
   void toggleMusic() {
     _musicEnabled = !_musicEnabled;
@@ -76,12 +96,12 @@ class AudioManager {
       stopMusic();
     }
   }
-  
+
   /// Toggle sound effects
   void toggleSfx() {
     _sfxEnabled = !_sfxEnabled;
   }
-  
+
   /// Set music volume
   void setMusicVolume(double volume) {
     _musicVolume = volume.clamp(0.0, 1.0);
@@ -91,7 +111,7 @@ class AudioManager {
       print('Warning: Could not set music volume: $e');
     }
   }
-  
+
   /// Set SFX volume
   void setSfxVolume(double volume) {
     _sfxVolume = volume.clamp(0.0, 1.0);
@@ -101,7 +121,7 @@ class AudioManager {
       print('Warning: Could not set SFX volume: $e');
     }
   }
-  
+
   /// Dispose audio players
   void dispose() {
     try {
@@ -132,7 +152,7 @@ extension GameSoundExtension on GameSound {
       case GameSound.gemMatch:
         return 'sounds/match.mp3';
       case GameSound.gemSwap:
-        return 'sounds/whoosh.mp3';
+        return 'sounds/swap.mp3';
       case GameSound.gemFall:
         return 'sounds/fall.mp3';
       case GameSound.lightning:

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_constants.dart';
 
 /// App theme configuration
@@ -16,19 +15,19 @@ class AppTheme {
         surface: AppConstants.darkPurple.withOpacity(0.3),
         background: AppConstants.shadowBlack,
       ),
-      textTheme: GoogleFonts.cinzelTextTheme(
-        ThemeData.dark().textTheme.apply(
-          bodyColor: AppConstants.marbleWhite,
-          displayColor: AppConstants.primaryGold,
-        ),
+      textTheme: ThemeData.dark().textTheme.apply(
+        bodyColor: AppConstants.marbleWhite,
+        displayColor: AppConstants.primaryGold,
+        fontFamily: 'System',  // Use system font
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppConstants.primaryGold,
           foregroundColor: AppConstants.shadowBlack,
-          textStyle: GoogleFonts.cinzel(
+          textStyle: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
+            fontFamily: 'System',
           ),
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: RoundedRectangleBorder(
@@ -37,27 +36,28 @@ class AppTheme {
           ),
         ),
       ),
-      // cardTheme: CardTheme(
-      //   color: AppConstants.darkPurple.withOpacity(0.5),
-      //   elevation: 8,
-      //   shape: RoundedRectangleBorder(
-      //     borderRadius: BorderRadius.circular(20),
-      //     side: BorderSide(color: AppConstants.primaryGold.withOpacity(0.3), width: 2),
-      //   ),
-      // ),
+      cardTheme: CardThemeData(
+        color: AppConstants.darkPurple.withOpacity(0.5),
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: AppConstants.primaryGold.withOpacity(0.3), width: 2),
+        ),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.cinzel(
+        titleTextStyle: const TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
-          color: AppConstants.primaryGold,
+          color: Color(0xFFFFD700),
+          fontFamily: 'System',
         ),
       ),
     );
   }
-  
+
   static ThemeData get lightTheme {
     return ThemeData(
       brightness: Brightness.light,
@@ -70,15 +70,14 @@ class AppTheme {
         surface: Colors.white.withOpacity(0.9),
         background: AppConstants.marbleWhite,
       ),
-      textTheme: GoogleFonts.cinzelTextTheme(
-        ThemeData.light().textTheme.apply(
-          bodyColor: AppConstants.shadowBlack,
-          displayColor: AppConstants.darkPurple,
-        ),
+      textTheme: ThemeData.light().textTheme.apply(
+        bodyColor: AppConstants.shadowBlack,
+        displayColor: AppConstants.darkPurple,
+        fontFamily: 'System',
       ),
     );
   }
-  
+
   // Custom decorations
   static BoxDecoration goldenBorder = BoxDecoration(
     border: Border.all(color: AppConstants.primaryGold, width: 3),
@@ -99,7 +98,7 @@ class AppTheme {
       ),
     ],
   );
-  
+
   static BoxDecoration marblePanel = BoxDecoration(
     color: AppConstants.marbleWhite.withOpacity(0.1),
     borderRadius: BorderRadius.circular(20),
