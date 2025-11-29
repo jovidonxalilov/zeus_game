@@ -235,7 +235,7 @@ class _GemWidgetState extends State<GemWidget>
       case GemType.red:
         return 'assets/images/el6_1.png'; // Red diamond
       case GemType.blue:
-        return 'assets/images/el1_1.png'; // Lightning (cyan/blue)
+        return 'assets/images/el4_1.png'; // Lightning (cyan/blue)
       case GemType.green:
         return 'assets/images/el2_1.png'; // Green crystal
       case GemType.cyan:

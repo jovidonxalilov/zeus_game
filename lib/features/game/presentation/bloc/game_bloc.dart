@@ -18,28 +18,19 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     on<RestartGameEvent>(_onRestart);
   }
 
+  // ----------------- INIT -----------------
   Future<void> _onInit(InitGameEvent event, Emitter<GameState> emit) async {
     emit(const GameLoading());
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 300));
 
-    print('🎮 INITIALIZING GAME - Level ${event.level}');
-
-    // Generate grid without any 3-in-row matches
-    final grid = _generateGrid();
-    
-    // Verify no matches exist
-    final initialMatches = _findMatches(grid);
-    if (initialMatches.isNotEmpty) {
-      print('⚠️ WARNING: Found ${initialMatches.length} matches in initial grid (should be 0)');
-    } else {
-      print('✅ Grid generated with NO initial matches');
-    }
-    
-    // Verify at least one possible move exists
-    if (!_hasPossibleMoves(grid)) {
-      print('⚠️ WARNING: No possible moves! Regenerating...');
-      // This shouldn't happen with proper random distribution
-    }
+    // Generate until we have a valid grid (no immediate matches and at least one possible move)
+    List<List<Gem>> grid;
+    int attempts = 0;
+    do {
+      grid = _generateGrid();
+      attempts++;
+      if (attempts > 10) break; // safety
+    } while (_findMatches(grid).isNotEmpty || !_hasPossibleMoves(grid));
 
     final gameState = GameStateModel(
       grid: grid,
@@ -47,94 +38,60 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       moves: 30,
       targetScore: 1000 + (event.level - 1) * 500,
       level: event.level,
+      isProcessing: false,
     );
 
-    print('✅ Game initialized: ${ROWS}x$COLS grid, Target: ${gameState.targetScore}');
     emit(GameReady(gameState));
   }
 
-  Future<void> _onSwap(
-    SwapGemsEvent event,
-    Emitter<GameState> emit,
-  ) async {
-    if (state is! GameReady) {
-      print('❌ Can\'t swap - state is ${state.runtimeType}');
-      return;
-    }
-
+  // ----------------- SWAP -----------------
+  Future<void> _onSwap(SwapGemsEvent event, Emitter<GameState> emit) async {
+    if (state is! GameReady) return;
     final current = (state as GameReady).gameState;
-    
-    if (current.isProcessing) {
-      print('❌ Already processing');
-      return;
-    }
+    if (current.isProcessing) return;
 
-    print('\n🔄 SWAP REQUEST');
-    print('From: (${event.row1}, ${event.col1})');
-    print('To: (${event.row2}, ${event.col2})');
+    final row1 = event.row1;
+    final col1 = event.col1;
+    final row2 = event.row2;
+    final col2 = event.col2;
 
-    // Check adjacent
-    final rowDiff = (event.row1 - event.row2).abs();
-    final colDiff = (event.col1 - event.col2).abs();
-    final isAdjacent = (rowDiff == 1 && colDiff == 0) || 
-                       (rowDiff == 0 && colDiff == 1);
+    // adjacency check
+    final rowDiff = (row1 - row2).abs();
+    final colDiff = (col1 - col2).abs();
+    final isAdjacent = (rowDiff == 1 && colDiff == 0) || (rowDiff == 0 && colDiff == 1);
+    if (!isAdjacent) return;
 
-    if (!isAdjacent) {
-      print('❌ NOT ADJACENT!');
-      return;
-    }
-
-    print('✅ Adjacent - processing swap...');
-
-    // Copy grid
+    // deep copy grid
     final grid = _copyGrid(current.grid);
 
-    // Perform swap
-    final temp = grid[event.row1][event.col1];
-    grid[event.row1][event.col1] = grid[event.row2][event.col2].copyWith(
-      row: event.row1,
-      col: event.col1,
-      isAnimating: true,
-    );
-    grid[event.row2][event.col2] = temp.copyWith(
-      row: event.row2,
-      col: event.col2,
-      isAnimating: true,
-    );
+    // perform swap (mark animating)
+    final a = grid[row1][col1];
+    final b = grid[row2][col2];
 
-    // Show swap animation
+    grid[row1][col1] = b.copyWith(row: row1, col: col1, isAnimating: true);
+    grid[row2][col2] = a.copyWith(row: row2, col: col2, isAnimating: true);
+
+    // emit animating
     emit(GameReady(current.copyWith(grid: grid, isProcessing: true)));
-    await Future.delayed(const Duration(milliseconds: 300));
 
-    // Check matches
+    // small animation delay
+    await Future.delayed(const Duration(milliseconds: 250));
+
+    // check if swap creates matches (including special interactions)
     final matches = _findMatches(grid);
-    print('🔍 Matches found: ${matches.length}');
 
     if (matches.isEmpty) {
-      print('❌ No matches - swapping back');
-      
-      // Swap back
-      final temp2 = grid[event.row1][event.col1];
-      grid[event.row1][event.col1] = grid[event.row2][event.col2].copyWith(
-        row: event.row1,
-        col: event.col1,
-        isAnimating: false,
-      );
-      grid[event.row2][event.col2] = temp2.copyWith(
-        row: event.row2,
-        col: event.col2,
-        isAnimating: false,
-      );
-      
+      // swap back and stop processing
+      final temp = grid[row1][col1];
+      grid[row1][col1] = grid[row2][col2].copyWith(row: row1, col: col1, isAnimating: false);
+      grid[row2][col2] = temp.copyWith(row: row2, col: col2, isAnimating: false);
+
       emit(GameReady(current.copyWith(grid: grid, isProcessing: false)));
       return;
     }
 
-    // Valid move - decrease moves
+    // Valid move: decrement moves, clear anim flags
     final newMoves = current.moves - 1;
-    print('✅ Valid move! Moves left: $newMoves');
-
-    // Clear animation flags
     for (int r = 0; r < ROWS; r++) {
       for (int c = 0; c < COLS; c++) {
         if (grid[r][c].isAnimating) {
@@ -143,88 +100,89 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       }
     }
 
-    emit(GameReady(current.copyWith(
-      grid: grid,
-      moves: newMoves,
-      isProcessing: true,
-    )));
+    emit(GameReady(current.copyWith(grid: grid, moves: newMoves, isProcessing: true)));
 
-    // Process matches
+    // start processing matches
     add(const ProcessMatchesEvent());
   }
 
-  Future<void> _onProcessMatches(
-    ProcessMatchesEvent event,
-    Emitter<GameState> emit,
-  ) async {
-    if (state is! GameReady) return;
+  // ----------------- PROCESS MATCHES -----------------
+  Future<void> _onProcessMatches(ProcessMatchesEvent event, Emitter<GameState> emit) async {
+    if (state is! GameReady && state is! GameProcessing) return;
 
     var current = (state as GameReady).gameState;
     var grid = _copyGrid(current.grid);
     var totalScore = current.score;
-    var combo = 1;
-
+    int combo = 1;
     bool foundMatches = true;
 
     while (foundMatches) {
-      final matches = _findMatches(grid);
-      
-      if (matches.isEmpty) {
+      // find matches and special creation hints
+      final DetectionResult detection = _findMatchesWithSpecials(grid);
+
+      if (detection.matchedGems.isEmpty) {
         foundMatches = false;
         break;
       }
 
-      print('💥 Processing ${matches.length} matches (Combo x$combo)');
-      
-      // Play match sound
-      SoundService().playMatch();
-
-      // Mark matched gems
-      for (final match in matches) {
-        grid[match.row][match.col] = match.copyWith(isMatched: true);
+      // mark matched
+      for (final g in detection.matchedGems) {
+        grid[g.row][g.col] = g.copyWith(isMatched: true);
       }
 
-      // Calculate score
-      final points = matches.length * 100 * combo;
+      // Play sound
+      SoundService().playMatch();
+
+      // scoring
+      final points = detection.matchedGems.length * 100 * combo;
       totalScore += points;
-      print('✨ +$points points! Total: $totalScore');
 
-      // Show match animation
+      // emit processing state to animate destruction
       emit(GameProcessing(current.copyWith(grid: grid, score: totalScore)));
-      await Future.delayed(const Duration(milliseconds: 400));
+      await Future.delayed(const Duration(milliseconds: 350));
 
-      // Remove matched and drop gems
+      // create special gems BEFORE removing matches:
+      // For each special creation instruction, set specialType on that gem and ensure it's not removed.
+      for (final entry in detection.specialCreations.entries) {
+        final pos = entry.key.split('_');
+        final r = int.parse(pos[0]);
+        final c = int.parse(pos[1]);
+        final sType = entry.value;
+
+        // place special gem at r,c (keep its base type but assign specialType)
+        final base = grid[r][c];
+        // If the base is currently matched (part of removal), unmark it and assign special
+        grid[r][c] = base.copyWith(isMatched: false, specialType: sType);
+      }
+
+      // remove matched gems and apply gravity
       _processGravity(grid);
-      
-      // Play fall sound
+
+      // play fall sound
       SoundService().playFall();
 
-      // Show falling animation
+      // show falling animation
       emit(GameProcessing(current.copyWith(grid: grid, score: totalScore)));
-      await Future.delayed(const Duration(milliseconds: 400));
+      await Future.delayed(const Duration(milliseconds: 350));
 
       combo++;
     }
 
-    // Final state
-    final finalState = current.copyWith(
-      grid: grid,
-      score: totalScore,
-      isProcessing: false,
-    );
+    // finalize
+    final finalState = current.copyWith(grid: grid, score: totalScore, isProcessing: false);
 
-    // Check win/lose conditions
     if (finalState.isWon) {
-      print('🎉 VICTORY! Score: $totalScore');
+      SoundService().playVictory();
       emit(GameWon(finalState));
     } else if (finalState.isLost) {
-      print('💔 GAME OVER! Score: $totalScore');
+      SoundService().playFailure();
       emit(GameLost(finalState));
     } else {
       emit(GameReady(finalState));
     }
   }
 
+  // ----------------- RESTART -----------------
   void _onRestart(RestartGameEvent event, Emitter<GameState> emit) {
     final level = state is GameReady
         ? (state as GameReady).gameState.level
@@ -233,69 +191,51 @@ class GameBloc extends Bloc<GameEvent, GameState> {
             : state is GameLost
                 ? (state as GameLost).gameState.level
                 : 1;
-    
     add(InitGameEvent(level: level));
   }
 
+  // ----------------- GRID GENERATION -----------------
   List<List<Gem>> _generateGrid() {
-    print('\n🎲 GENERATING GRID...');
-    
     final grid = List.generate(
       ROWS,
       (r) => List.generate(
         COLS,
         (c) => Gem(
           id: '${r}_$c',
-          type: GemType.red, // Temporary placeholder
+          type: _randomBasicGemType(),
           row: r,
           col: c,
         ),
       ),
     );
-    
-    // Fill grid position by position, avoiding 3-in-row
-    int preventions = 0;
+
+    // Fill sequentially ensuring no immediate 3-in-row while taking into account neighbors
     for (int r = 0; r < ROWS; r++) {
       for (int c = 0; c < COLS; c++) {
-        final oldPrev = preventions;
-        GemType type = _getRandomNonMatchingType(grid, r, c);
-        if (preventions > oldPrev) {
-          // A type was banned
-        }
         grid[r][c] = Gem(
           id: '${r}_$c',
-          type: type,
+          type: _getSafeRandomType(grid, r, c),
           row: r,
           col: c,
         );
       }
     }
-    
-    print('✅ Grid generated with $preventions preventions');
-    
-    // VERIFICATION: Check for any matches
-    final matches = _findMatches(grid);
-    if (matches.isNotEmpty) {
-      print('❌ ERROR: Generated grid has ${matches.length} matches!');
-      print('This should NEVER happen!');
-      // Print grid for debugging
-      for (int r = 0; r < ROWS; r++) {
-        final row = grid[r].map((g) => g.type.toString().split('.').last[0]).join(' ');
-        print('Row $r: $row');
-      }
-    } else {
-      print('✅ VERIFIED: Grid has ZERO matches');
-    }
-    
+
     return grid;
   }
 
+  // ----------------- UTILS -----------------
   List<List<Gem>> _copyGrid(List<List<Gem>> grid) {
-    return grid.map((row) => row.map((gem) => gem).toList()).toList();
+    return List.generate(
+      ROWS,
+      (r) => List.generate(
+        COLS,
+        (c) => grid[r][c].copyWith(),
+      ),
+    );
   }
 
-  GemType _randomGemType() {
-    // Use only basic 6 gem types (not special gems)
+  GemType _randomBasicGemType() {
     const basicGems = [
       GemType.red,
       GemType.blue,
@@ -306,10 +246,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     ];
     return basicGems[Random().nextInt(basicGems.length)];
   }
-  
-  // Get a random type that won't create 3-in-row at this position
-  // ONLY checks positions that are already filled (left and top)
-  GemType _getRandomNonMatchingType(List<List<Gem>> grid, int row, int col) {
+
+  // choose a gem type that won't immediately make a 3-in-row considering all neighbors
+  GemType _getSafeRandomType(List<List<Gem>> grid, int row, int col) {
     const basicGems = [
       GemType.red,
       GemType.blue,
@@ -318,125 +257,289 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       GemType.purple,
       GemType.cyan,
     ];
-    
-    Set<GemType> bannedTypes = {};
-    
-    // HORIZONTAL: Check left 2 gems (already filled)
-    if (col >= 2) {
-      final left1 = grid[row][col - 1].type;
-      final left2 = grid[row][col - 2].type;
-      if (left1 == left2) {
-        bannedTypes.add(left1);
-      }
+
+    List<GemType> possible = List.from(basicGems);
+
+    bool createsMatch(GemType t) {
+      // Temporarily set this type to test neighbors existence (checking gorizontal & vertical patterns)
+      // HORIZONTAL checks
+      // left-left + left
+      if (col >= 2 &&
+          grid[row][col - 1].type == t &&
+          grid[row][col - 2].type == t) return true;
+      // left + right
+      if (col >= 1 && col < COLS - 1 &&
+          grid[row][col - 1].type == t &&
+          grid[row][col + 1].type == t) return true;
+      // right + right-right
+      if (col < COLS - 2 &&
+          grid[row][col + 1].type == t &&
+          grid[row][col + 2].type == t) return true;
+
+      // VERTICAL checks
+      // up-up + up
+      if (row >= 2 &&
+          grid[row - 1][col].type == t &&
+          grid[row - 2][col].type == t) return true;
+      // up + down
+      if (row >= 1 && row < ROWS - 1 &&
+          grid[row - 1][col].type == t &&
+          grid[row + 1][col].type == t) return true;
+      // down + down-down
+      if (row < ROWS - 2 &&
+          grid[row + 1][col].type == t &&
+          grid[row + 2][col].type == t) return true;
+
+      return false;
     }
-    
-    // VERTICAL: Check top 2 gems (already filled)
-    if (row >= 2) {
-      final top1 = grid[row - 1][col].type;
-      final top2 = grid[row - 2][col].type;
-      if (top1 == top2) {
-        bannedTypes.add(top1);
-      }
-    }
-    
-    // Get available types
-    final availableTypes = basicGems.where((type) => !bannedTypes.contains(type)).toList();
-    
-    // Safety check: if somehow all are banned, return random
-    if (availableTypes.isEmpty) {
-      print('⚠️ WARNING: All types banned at ($row, $col)');
+
+    possible.removeWhere((t) => createsMatch(t));
+
+    if (possible.isEmpty) {
+      // fallback (very rare)
       return basicGems[Random().nextInt(basicGems.length)];
     }
-    
-    return availableTypes[Random().nextInt(availableTypes.length)];
+
+    return possible[Random().nextInt(possible.length)];
   }
-  
+
+  // ----------------- POSSIBLE MOVES CHECK -----------------
   bool _hasPossibleMoves(List<List<Gem>> grid) {
-    // Check if any swap would create a match
     for (int r = 0; r < ROWS; r++) {
       for (int c = 0; c < COLS; c++) {
-        // Try swapping with right neighbor
+        // swap right
         if (c < COLS - 1) {
-          final testGrid = _copyGrid(grid);
-          final temp = testGrid[r][c];
-          testGrid[r][c] = testGrid[r][c + 1].copyWith(row: r, col: c);
-          testGrid[r][c + 1] = temp.copyWith(row: r, col: c + 1);
-          if (_findMatches(testGrid).isNotEmpty) return true;
+          final test = _copyGrid(grid);
+          final t = test[r][c];
+          test[r][c] = test[r][c + 1].copyWith(row: r, col: c);
+          test[r][c + 1] = t.copyWith(row: r, col: c + 1);
+          if (_findMatches(test).isNotEmpty) return true;
         }
-        // Try swapping with bottom neighbor
+        // swap down
         if (r < ROWS - 1) {
-          final testGrid = _copyGrid(grid);
-          final temp = testGrid[r][c];
-          testGrid[r][c] = testGrid[r + 1][c].copyWith(row: r, col: c);
-          testGrid[r + 1][c] = temp.copyWith(row: r + 1, col: c);
-          if (_findMatches(testGrid).isNotEmpty) return true;
+          final test = _copyGrid(grid);
+          final t = test[r][c];
+          test[r][c] = test[r + 1][c].copyWith(row: r, col: c);
+          test[r + 1][c] = t.copyWith(row: r + 1, col: c);
+          if (_findMatches(test).isNotEmpty) return true;
         }
       }
     }
     return false;
   }
 
+  // ----------------- MATCH DETECTION -----------------
+  // Return only matched gems (no order guarantee)
   List<Gem> _findMatches(List<List<Gem>> grid) {
-    final Set<Gem> matches = {};
+    final Set<String> matchedIds = {};
 
-    // Check horizontal
+    // horizontal
     for (int r = 0; r < ROWS; r++) {
-      for (int c = 0; c < COLS - 2; c++) {
-        final g1 = grid[r][c];
-        final g2 = grid[r][c + 1];
-        final g3 = grid[r][c + 2];
-
-        if (!g1.isMatched && !g2.isMatched && !g3.isMatched &&
-            g1.type == g2.type && g2.type == g3.type) {
-          matches.addAll([g1, g2, g3]);
+      int runStart = 0;
+      for (int c = 1; c <= COLS; c++) {
+        if (c < COLS && grid[r][c].type == grid[r][runStart].type && !grid[r][c].isMatched && !grid[r][runStart].isMatched) {
+          // continue run
+        } else {
+          final runLen = c - runStart;
+          if (runLen >= 3) {
+            for (int k = runStart; k < c; k++) {
+              matchedIds.add(grid[r][k].id);
+            }
+          }
+          runStart = c;
         }
       }
     }
 
-    // Check vertical
+    // vertical
     for (int c = 0; c < COLS; c++) {
-      for (int r = 0; r < ROWS - 2; r++) {
-        final g1 = grid[r][c];
-        final g2 = grid[r + 1][c];
-        final g3 = grid[r + 2][c];
-
-        if (!g1.isMatched && !g2.isMatched && !g3.isMatched &&
-            g1.type == g2.type && g2.type == g3.type) {
-          matches.addAll([g1, g2, g3]);
+      int runStart = 0;
+      for (int r = 1; r <= ROWS; r++) {
+        if (r < ROWS && grid[r][c].type == grid[runStart][c].type && !grid[r][c].isMatched && !grid[runStart][c].isMatched) {
+          // continue run
+        } else {
+          final runLen = r - runStart;
+          if (runLen >= 3) {
+            for (int k = runStart; k < r; k++) {
+              matchedIds.add(grid[k][c].id);
+            }
+          }
+          runStart = r;
         }
       }
     }
 
-    return matches.toList();
+    // convert ids to Gem list
+    final List<Gem> result = [];
+    for (int r = 0; r < ROWS; r++) {
+      for (int c = 0; c < COLS; c++) {
+        if (matchedIds.contains(grid[r][c].id)) result.add(grid[r][c]);
+      }
+    }
+    return result;
   }
 
-  void _processGravity(List<List<Gem>> grid) {
-    // Drop existing gems
+  // Extended detection that also returns special gem creation instructions
+  DetectionResult _findMatchesWithSpecials(List<List<Gem>> grid) {
+    final Set<String> matchedIds = {};
+    final List<Run> horizontalRuns = [];
+    final List<Run> verticalRuns = [];
+
+    // find horizontal runs
+    for (int r = 0; r < ROWS; r++) {
+      int start = 0;
+      for (int c = 1; c <= COLS; c++) {
+        if (c < COLS && grid[r][c].type == grid[r][start].type && !grid[r][c].isMatched && !grid[r][start].isMatched) {
+          // extend
+        } else {
+          final len = c - start;
+          if (len >= 3) {
+            horizontalRuns.add(Run(r: r, cStart: start, cEnd: c - 1, length: len, isHorizontal: true));
+            for (int k = start; k < c; k++) matchedIds.add(grid[r][k].id);
+          }
+          start = c;
+        }
+      }
+    }
+
+    // find vertical runs
     for (int c = 0; c < COLS; c++) {
-      int writeRow = ROWS - 1;
-      
+      int start = 0;
+      for (int r = 1; r <= ROWS; r++) {
+        if (r < ROWS && grid[r][c].type == grid[start][c].type && !grid[r][c].isMatched && !grid[start][c].isMatched) {
+          // extend
+        } else {
+          final len = r - start;
+          if (len >= 3) {
+            verticalRuns.add(Run(rStart: start, c: c, rEnd: r - 1, length: len, isHorizontal: false));
+            for (int k = start; k < r; k++) matchedIds.add(grid[k][c].id);
+          }
+          start = r;
+        }
+      }
+    }
+
+    // Decide special creations:
+    // - any run length == 4 -> lightning at a logical pivot (prefer the moved gem position if known; here choose middle)
+    // - run length >=5 -> storm
+    // - intersection of horizontal & vertical runs -> temple (T/Cross)
+    // - L-shape (one run intersects another but not symmetrical?) -> wings (we'll treat any intersection as temple if both >=3)
+    final Map<String, SpecialGemType> specialCreations = {};
+
+    // intersections: check cells that are in both horizontal and vertical runs
+    for (final h in horizontalRuns) {
+      for (final v in verticalRuns) {
+        final hr = h.r;
+        final hcStart = h.cStart;
+        final hcEnd = h.cEnd;
+        final vrStart = v.rStart;
+        final vrEnd = v.rEnd;
+        final vc = v.c;
+        // intersection cell is (hr, vc)
+        if (vc >= hcStart && vc <= hcEnd && hr >= vrStart && hr <= vrEnd) {
+          // create temple at intersection
+          specialCreations['${hr}_$vc'] = SpecialGemType.temple;
+        }
+      }
+    }
+
+    // runs for length-based specials (horizontal)
+    for (final h in horizontalRuns) {
+      if (h.length >= 5) {
+        // put storm near middle
+        final mid = (h.cStart + h.cEnd) ~/ 2;
+        specialCreations['${h.r}_$mid'] = SpecialGemType.storm;
+      } else if (h.length == 4) {
+        final mid = (h.cStart + h.cEnd) ~/ 2;
+        // if already has temple/storm don't override
+        specialCreations.putIfAbsent('${h.r}_$mid', () => SpecialGemType.lightning);
+      } else if (h.length == 3) {
+        // no special for pure 3 unless intersection handled above
+      }
+    }
+
+    // runs for length-based specials (vertical)
+    for (final v in verticalRuns) {
+      if (v.length >= 5) {
+        final mid = (v.rStart + v.rEnd) ~/ 2;
+        specialCreations.putIfAbsent('${mid}_${v.c}', () => SpecialGemType.storm);
+      } else if (v.length == 4) {
+        final mid = (v.rStart + v.rEnd) ~/ 2;
+        specialCreations.putIfAbsent('${mid}_${v.c}', () => SpecialGemType.lightning);
+      }
+    }
+
+    // Convert matchedIds to Gem list
+    final matchedList = <Gem>[];
+    for (int r = 0; r < ROWS; r++) {
+      for (int c = 0; c < COLS; c++) {
+        if (matchedIds.contains(grid[r][c].id)) matchedList.add(grid[r][c]);
+      }
+    }
+
+    return DetectionResult(matchedGems: matchedList, specialCreations: specialCreations);
+  }
+
+  // ----------------- GRAVITY & REFILL -----------------
+  void _processGravity(List<List<Gem>> grid) {
+    for (int c = 0; c < COLS; c++) {
+      int write = ROWS - 1;
       for (int r = ROWS - 1; r >= 0; r--) {
         if (!grid[r][c].isMatched) {
-          if (r != writeRow) {
-            grid[writeRow][c] = grid[r][c].copyWith(
-              row: writeRow,
-              col: c,
-            );
+          if (r != write) {
+            grid[write][c] = grid[r][c].copyWith(row: write, col: c);
           }
-          writeRow--;
+          write--;
         }
       }
 
-      // Fill empty spaces with new gems that won't create 3-in-row
-      for (int r = writeRow; r >= 0; r--) {
+      // fill remaining with new gems (safe types)
+      for (int r = write; r >= 0; r--) {
         grid[r][c] = Gem(
           id: '${r}_$c',
-          type: _getRandomNonMatchingType(grid, r, c),
+          type: _getSafeRandomType(grid, r, c),
           row: r,
           col: c,
+          isMatched: false,
+          isAnimating: false,
+          specialType: SpecialGemType.none,
         );
       }
     }
   }
+}
+
+// ----------------- Helper classes -----------------
+class Run {
+  // horizontal: r, cStart, cEnd
+  // vertical: rStart, rEnd, c
+  final int r;
+  final int cStart;
+  final int cEnd;
+  final int rStart;
+  final int rEnd;
+  final int c;
+  final int length;
+  final bool isHorizontal;
+
+  Run({
+    this.r = -1,
+    this.cStart = -1,
+    this.cEnd = -1,
+    this.rStart = -1,
+    this.rEnd = -1,
+    this.c = -1,
+    required this.length,
+    required this.isHorizontal,
+  });
+}
+
+class DetectionResult {
+  final List<Gem> matchedGems;
+  final Map<String, SpecialGemType> specialCreations;
+  DetectionResult({
+    required this.matchedGems,
+    required this.specialCreations,
+  });
 }
 
