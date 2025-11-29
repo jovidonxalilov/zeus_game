@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/utils/audio_manager.dart';
+import '../../../../core/widgets/page_transitions.dart';
 import '../bloc/game_bloc.dart';
 import '../pages/game_screen.dart';
 
@@ -12,7 +13,7 @@ class LevelSelectorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(//
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
               const Color(0xFF4B0082),
@@ -62,7 +63,7 @@ class LevelSelectorScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 16),
                         const Text(
-                          'DARAJANI TANLANG',
+                          'SELECT LEVEL',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -77,26 +78,42 @@ class LevelSelectorScreen extends StatelessWidget {
                   Expanded(
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        final width = constraints.maxWidth;
-                        final height = constraints.maxHeight;
+                        // Calculate responsive sizing to prevent overflow
+                        final availableHeight = constraints.maxHeight;
+                        final availableWidth = constraints.maxWidth;
 
-                        // Karta nisbatini ekranga qarab avtomatik moslash
-                        final ratio = width / (height * 0.95); // juda mos tushadi
+                        // Calculate card size to fit perfectly
+                        final spacing = 12.0;
+                        final horizontalPadding = 20.0;
+                        final cardWidth = (availableWidth - horizontalPadding * 2 - spacing * 2) / 3;
 
-                        return Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: GridView.builder(
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              mainAxisSpacing: 16,
-                              crossAxisSpacing: 16,
-                              childAspectRatio: ratio.clamp(0.60, 0.90),
-                            ),
-                            itemCount: 9,
-                            itemBuilder: (context, index) {
-                              final level = index + 1;
-                              return _buildLevelCard(context, level);
-                            },
+                        return SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          padding: EdgeInsets.only(
+                            left: horizontalPadding,
+                            right: horizontalPadding,
+                            top: 20,
+                            bottom: 40, // Extra bottom padding to prevent overflow
+                          ),
+                          child: Column(
+                            children: [
+                              // Grid with 9 levels
+                              Wrap(
+                                spacing: spacing,
+                                runSpacing: spacing,
+                                children: List.generate(9, (index) {
+                                  final level = index + 1;
+                                  return SizedBox(
+                                    width: cardWidth,
+                                    height: cardWidth * 1.3, // Aspect ratio
+                                    child: AnimatedCard(
+                                      delay: index * 80,
+                                      child: _buildLevelCard(context, level),
+                                    ),
+                                  );
+                                }),
+                              ),
+                            ],
                           ),
                         );
                       },
@@ -118,100 +135,117 @@ class LevelSelectorScreen extends StatelessWidget {
       onTap: () {
         SoundService().playClick();
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => BlocProvider(
+          PageTransitions.scaleIn(
+            BlocProvider(
               create: (_) => GameBloc(),
               child: GameScreen(level: level),
             ),
           ),
         );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: colors,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFFFFD700),
-            width: 3,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: colors[0].withOpacity(0.5),
-              blurRadius: 15,
-              spreadRadius: 2,
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final cardW = box.maxWidth;
+          final cardH = box.maxHeight;
+
+          // Responsive sizing
+          final numberSize = cardW * 0.33;
+          final titleSize = cardW * 0.10;
+          final scoreSize = cardW * 0.085;
+          final starSize = cardW * 0.09;
+
+          return Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: colors,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFFFFD700),
+                width: 3,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: colors[0].withOpacity(0.5),
+                  blurRadius: 15,
+                  spreadRadius: 2,
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Level number
-            Text(
-              level.toString(),
-              style: const TextStyle(
-                fontSize: 48,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                shadows: [
-                  Shadow(
-                    color: Colors.black,
-                    offset: Offset(0, 2),
-                    blurRadius: 4,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // LEVEL NUMBER
+                Text(
+                  level.toString(),
+                  style: TextStyle(
+                    fontSize: numberSize,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    shadows: const [
+                      Shadow(
+                        color: Colors.black,
+                        offset: Offset(0, 2),
+                        blurRadius: 4,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
 
-            const SizedBox(height: 8),
+                SizedBox(height: cardH * 0.02),
 
-            // Level name
-            Text(
-              _getLevelName(level),
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.white.withOpacity(0.9),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-
-            const SizedBox(height: 4),
-
-            // Target score
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.star,
-                    color: Color(0xFFFFD700),
-                    size: 12,
+                // LEVEL NAME
+                Text(
+                  _getLevelName(level),
+                  style: TextStyle(
+                    fontSize: titleSize,
+                    color: Colors.white.withOpacity(0.9),
+                    fontWeight: FontWeight.w600,
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${1000 + (level - 1) * 500}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                ),
+
+                SizedBox(height: cardH * 0.01),
+
+                // TARGET SCORE
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: cardW * 0.06,
+                    vertical: cardH * 0.015,
                   ),
-                ],
-              ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.star,
+                        color: const Color(0xFFFFD700),
+                        size: starSize,
+                      ),
+                      SizedBox(width: cardW * 0.02),
+                      Text(
+                        '${1000 + (level - 1) * 500}',
+                        style: TextStyle(
+                          fontSize: scoreSize,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
+
 
   List<Color> _getLevelColors(int level) {
     switch (level) {
@@ -241,23 +275,23 @@ class LevelSelectorScreen extends StatelessWidget {
   String _getLevelName(int level) {
     switch (level) {
       case 1:
-        return 'BOSHLANG\'ICH';
+        return 'BEGINNER';
       case 2:
-        return 'OSON';
+        return 'EASY';
       case 3:
-        return 'O\'RTACHA';
+        return 'MEDIUM';
       case 4:
-        return 'QIYIN';
+        return 'HARD';
       case 5:
-        return 'JUDA QIYIN';
+        return 'VERY HARD';
       case 6:
-        return 'MURAKKAB';
+        return 'EXPERT';
       case 7:
-        return 'EKSPERT';
+        return 'PRO';
       case 8:
         return 'MASTER';
       case 9:
-        return 'OLIMP';
+        return 'OLYMPUS';
       default:
         return 'LEVEL $level';
     }

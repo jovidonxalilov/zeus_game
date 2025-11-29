@@ -14,7 +14,7 @@ class Level extends Equatable {
   final int highScore;
   final String? bossName;
   final int? bossHealth;
-  
+
   const Level({
     required this.id,
     required this.name,
@@ -28,7 +28,7 @@ class Level extends Equatable {
     this.bossName,
     this.bossHealth,
   });
-  
+
   /// Copy with method
   Level copyWith({
     int? id,
@@ -57,17 +57,17 @@ class Level extends Equatable {
       bossHealth: bossHealth ?? this.bossHealth,
     );
   }
-  
+
   /// Check if level is playable
   bool get isPlayable {
     return status == LevelStatus.unlocked || status == LevelStatus.completed;
   }
-  
+
   /// Check if level has boss
   bool get hasBoss {
     return bossName != null && bossHealth != null;
   }
-  
+
   /// Get difficulty color
   int get difficultyColor {
     switch (difficulty) {
@@ -81,7 +81,7 @@ class Level extends Equatable {
         return 0xFFFF0000;
     }
   }
-  
+
   @override
   List<Object?> get props => [
         id,
@@ -145,7 +145,7 @@ class LevelData {
           bossName: 'Tsiklop',
           bossHealth: 100,
         ),
-        
+
         // Chapter 2: Abadiy Tog' (Eternal Mountain)
         const Level(
           id: 6,
@@ -191,10 +191,10 @@ class LevelData {
           bossName: 'Tog\' Xudosi',
           bossHealth: 200,
         ),
-        
+
         // More levels can be added here...
       ];
-  
+
   /// Get level by ID
   static Level? getLevelById(int id) {
     try {
@@ -203,7 +203,7 @@ class LevelData {
       return null;
     }
   }
-  
+
   /// Get levels by difficulty
   static List<Level> getLevelsByDifficulty(GameDifficulty difficulty) {
     return allLevels.where((level) => level.difficulty == difficulty).toList();

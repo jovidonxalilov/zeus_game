@@ -7,6 +7,7 @@ import '../../domain/model/state_model.dart';
 import 'game_event.dart';
 import 'game_state.dart';
 
+
 const int ROWS = 7;
 const int COLS = 6;
 
@@ -268,7 +269,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   }
 
   List<List<Gem>> _generateGrid() {
-    return List.generate(
+    var grid = List.generate(
       ROWS,
           (r) => List.generate(
         COLS,
@@ -280,6 +281,26 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         ),
       ),
     );
+
+    // Ensure at least one match is possible
+    int attempts = 0;
+    while (!_hasPossibleMoves(grid) && attempts < 10) {
+      grid = List.generate(
+        ROWS,
+            (r) => List.generate(
+          COLS,
+              (c) => Gem(
+            id: '${r}_$c',
+            type: _randomGemType(),
+            row: r,
+            col: c,
+          ),
+        ),
+      );
+      attempts++;
+    }
+
+    return grid;
   }
 
   List<List<Gem>> _copyGrid(List<List<Gem>> grid) {
@@ -287,7 +308,41 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   }
 
   GemType _randomGemType() {
-    return GemType.values[Random().nextInt(GemType.values.length)];
+    // Use only basic 6 gem types (not special gems)
+    const basicGems = [
+      GemType.red,
+      GemType.blue,
+      GemType.green,
+      GemType.yellow,
+      GemType.purple,
+      GemType.cyan,
+    ];
+    return basicGems[Random().nextInt(basicGems.length)];
+  }
+
+  bool _hasPossibleMoves(List<List<Gem>> grid) {
+    // Check if any swap would create a match
+    for (int r = 0; r < ROWS; r++) {
+      for (int c = 0; c < COLS; c++) {
+        // Try swapping with right neighbor
+        if (c < COLS - 1) {
+          final testGrid = _copyGrid(grid);
+          final temp = testGrid[r][c];
+          testGrid[r][c] = testGrid[r][c + 1].copyWith(row: r, col: c);
+          testGrid[r][c + 1] = temp.copyWith(row: r, col: c + 1);
+          if (_findMatches(testGrid).isNotEmpty) return true;
+        }
+        // Try swapping with bottom neighbor
+        if (r < ROWS - 1) {
+          final testGrid = _copyGrid(grid);
+          final temp = testGrid[r][c];
+          testGrid[r][c] = testGrid[r + 1][c].copyWith(row: r, col: c);
+          testGrid[r + 1][c] = temp.copyWith(row: r + 1, col: c);
+          if (_findMatches(testGrid).isNotEmpty) return true;
+        }
+      }
+    }
+    return false;
   }
 
   List<Gem> _findMatches(List<List<Gem>> grid) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/gem.dart';
 
+
 class GemWidget extends StatefulWidget {
   final Gem gem;
   final bool isSelected;
@@ -9,13 +10,13 @@ class GemWidget extends StatefulWidget {
   final Function(Gem)? onDragEnd;
 
   const GemWidget({
-    Key? key,
+    super.key,
     required this.gem,
     required this.isSelected,
     required this.onTap,
     this.onDragUpdate,
     this.onDragEnd,
-  }) : super(key: key);
+  });
 
   @override
   State<GemWidget> createState() => _GemWidgetState();
@@ -110,8 +111,10 @@ class _GemWidgetState extends State<GemWidget>
           border: Border.all(
             color: widget.isSelected
                 ? Colors.yellow
-                : Colors.white.withOpacity(0.2),
-            width: widget.isSelected ? 3 : 1,
+                : (widget.gem.isSpecial
+                ? Colors.white
+                : Colors.white.withOpacity(0.2)),
+            width: widget.isSelected ? 3 : (widget.gem.isSpecial ? 2 : 1),
           ),
           boxShadow: widget.isSelected
               ? [
@@ -119,6 +122,14 @@ class _GemWidgetState extends State<GemWidget>
               color: Colors.yellow.withOpacity(0.8),
               blurRadius: 20,
               spreadRadius: 4,
+            ),
+          ]
+              : widget.gem.isSpecial
+              ? [
+            BoxShadow(
+              color: widget.gem.color.withOpacity(0.6),
+              blurRadius: 15,
+              spreadRadius: 2,
             ),
           ]
               : [
@@ -134,11 +145,12 @@ class _GemWidgetState extends State<GemWidget>
             children: [
               // Gem image
               Positioned.fill(
-                child: Image.asset(
+                child: widget.gem.isSpecial
+                    ? _buildSpecialGem()
+                    : Image.asset(
                   _getGemImage(),
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) {
-                    // Fallback to color circle
                     return Container(
                       decoration: BoxDecoration(
                         color: widget.gem.color,
@@ -162,13 +174,23 @@ class _GemWidgetState extends State<GemWidget>
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
                         colors: [
-                          Colors.white.withOpacity(0.3),
+                          Colors.white.withOpacity(widget.gem.isSpecial ? 0.5 : 0.3),
                           Colors.transparent,
                         ],
                         stops: const [0.0, 0.5],
                         center: const Alignment(-0.3, -0.3),
                       ),
                     ),
+                  ),
+                ),
+
+              // Special gem icon overlay
+              if (widget.gem.isSpecial && !widget.gem.isMatched)
+                Center(
+                  child: Icon(
+                    _getSpecialIcon(),
+                    color: Colors.white,
+                    size: 20,
                   ),
                 ),
             ],
@@ -178,20 +200,59 @@ class _GemWidgetState extends State<GemWidget>
     );
   }
 
+  Widget _buildSpecialGem() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: RadialGradient(
+          colors: [
+            Colors.white,
+            widget.gem.color.withOpacity(0.9),
+            widget.gem.color,
+          ],
+          stops: const [0.0, 0.3, 1.0],
+        ),
+      ),
+    );
+  }
+
+  IconData _getSpecialIcon() {
+    switch (widget.gem.specialType) {
+      case SpecialGemType.lightning:
+        return Icons.flash_on;
+      case SpecialGemType.storm:
+        return Icons.storm;
+      case SpecialGemType.wings:
+        return Icons.airplanemode_active;
+      case SpecialGemType.temple:
+        return Icons.account_balance;
+      default:
+        return Icons.star;
+    }
+  }
+
   String _getGemImage() {
     switch (widget.gem.type) {
       case GemType.red:
-        return 'assets/gems/gem_red.png';
+        return 'assets/images/el6_1.png'; // Red diamond
       case GemType.blue:
-        return 'assets/gems/gem_blue.png';
+        return 'assets/images/el1_1.png'; // Lightning (cyan/blue)
       case GemType.green:
-        return 'assets/gems/gem_green.png';
+        return 'assets/images/el2_1.png'; // Green crystal
       case GemType.cyan:
-        return 'assets/gems/gem_cyan.png';
+        return 'assets/images/el1_1.png'; // Lightning
       case GemType.yellow:
-        return 'assets/gems/gem_red.png'; // Reuse red
+        return 'assets/images/el3_1.png'; // Wings (gold)
       case GemType.purple:
-        return 'assets/gems/gem_blue.png'; // Reuse blue
+        return 'assets/images/el5_1.png'; // Temple (purple/gold)
+    // Special gems
+      case GemType.lightning:
+        return 'assets/images/el1_1.png'; // Lightning bolt
+      case GemType.storm:
+        return 'assets/images/el6_1.png'; // Red diamond
+      case GemType.wings:
+        return 'assets/images/el3_1.png'; // Wings
+      case GemType.temple:
+        return 'assets/images/el5_1.png'; // Temple
     }
   }
 }

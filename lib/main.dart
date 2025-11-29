@@ -21,16 +21,21 @@ class ZeusApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        primaryColor: Colors.purple,
+        primaryColor: const Color(0xFFFFD700),
+        scaffoldBackgroundColor: Colors.black,
         fontFamily: 'Roboto',
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFFFFD700),
+          secondary: Color(0xFFFF8C00),
+        ),
       ),
-      home: SplashScreen(),
+      home: const SplashScreen(),
     );
   }
 }
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({Key? key}) : super(key: key);
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -40,6 +45,8 @@ class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+  double _progress = 0.0;
 
   @override
   void initState() {
@@ -55,16 +62,70 @@ class _SplashScreenState extends State<SplashScreen>
       end: 1.0,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
 
-    _controller.forward();
+    _scaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
 
-    // Navigate to main menu after splash
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MenuScreen()),
-        );
-      }
+    _controller.forward();
+    _startLoading();
+  }
+
+  void _startLoading() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      _updateProgress();
     });
+  }
+
+  void _updateProgress() {
+    if (!mounted) return;
+
+    setState(() {
+      _progress += 0.02;
+    });
+
+    if (_progress >= 1.0) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pushReplacement(_createRoute(const MenuScreen()));
+        }
+      });
+    } else {
+      Future.delayed(const Duration(milliseconds: 50), () {
+        _updateProgress();
+      });
+    }
+  }
+
+  Route _createRoute(Widget destination) {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => destination,
+      transitionDuration: const Duration(milliseconds: 800),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(0.0, 1.0);
+        const end = Offset.zero;
+        const curve = Curves.easeInOutCubic;
+
+        var tween = Tween(
+          begin: begin,
+          end: end,
+        ).chain(CurveTween(curve: curve));
+
+        var fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+          CurvedAnimation(
+            parent: animation,
+            curve: const Interval(0.3, 1.0, curve: Curves.easeIn),
+          ),
+        );
+
+        return SlideTransition(
+          position: animation.drive(tween),
+          child: FadeTransition(opacity: fadeAnimation, child: child),
+        );
+      },
+    );
   }
 
   @override
@@ -76,137 +137,139 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [const Color(0xFF4B0082), const Color(0xFF1A1A1A)],
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background temple image (bg_1.png)
+          Image.asset(
+            'assets/images/bg 1.png',
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) {
+              return Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [const Color(0xFFFF8C00), const Color(0xFF4B0082)],
+                  ),
+                ),
+              );
+            },
           ),
-        ),
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: Stack(
-            children: [
-              // Background image with error handling
-              Positioned.fill(
+
+          // Dark overlay for better contrast
+          Container(color: Colors.black.withOpacity(0.3)),
+
+          // Zeus character (character_1.png) in center
+          FadeTransition(
+            opacity: _fadeAnimation,
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: Center(
                 child: Image.asset(
-                  'assets/images/loader.png',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    // If image fails to load, show gradient background
-                    return Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            const Color(0xFFFF8C00),
-                            const Color(0xFF4B0082),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                  'assets/images/character 1.png',
+                  height: MediaQuery.of(context).size.height * 0.6,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                 ),
               ),
-
-              // Zeus Icon (center)
-              // Center(
-              //   child: Column(
-              //     mainAxisAlignment: MainAxisAlignment.center,
-              //     children: [
-              //       // Zeus lightning icon
-              //       Container(
-              //         width: 150,
-              //         height: 150,
-              //         decoration: BoxDecoration(
-              //           shape: BoxShape.circle,
-              //           gradient: const LinearGradient(
-              //             colors: [Color(0xFFFFD700), Color(0xFFFF8C00)],
-              //           ),
-              //           boxShadow: [
-              //             BoxShadow(
-              //               color: const Color(0xFFFFD700).withOpacity(0.6),
-              //               blurRadius: 40,
-              //               spreadRadius: 15,
-              //             ),
-              //           ],
-              //         ),
-              //         child: const Icon(
-              //           Icons.flash_on,
-              //           size: 100,
-              //           color: Color(0xFF1A1A1A),
-              //         ),
-              //       ),
-              //
-              //       const SizedBox(height: 40),
-              //
-              //       // ZEUS text
-              //       // const Text(
-              //       //   'ZEUS',
-              //       //   style: TextStyle(
-              //       //     fontSize: 72,
-              //       //     fontWeight: FontWeight.bold,
-              //       //
-              //       //     color: Color(0xFFFFD700),
-              //       //     shadows: [
-              //       //       Shadow(
-              //       //         color: Color(0xFFFF8C00),
-              //       //         offset: Offset(0, 4),
-              //       //         blurRadius: 8,
-              //       //       ),
-              //       //     ],
-              //       //   ),
-              //       // ),
-              //
-              //       const SizedBox(height: 12),
-              //
-              //       const Text(
-              //         'Rise of Olympus',
-              //         style: TextStyle(
-              //           fontSize: 24,
-              //           color: Color(0xFFF5F5DC),
-              //           letterSpacing: 3,
-              //         ),
-              //       ),
-              //     ],
-              //   ),
-              // ),
-
-              // Loading indicator
-              // Positioned(
-              //   bottom: 80,
-              //   left: 0,
-              //   right: 0,
-              //   child: Column(
-              //     children: [
-              //       const SizedBox(
-              //         width: 50,
-              //         height: 50,
-              //         child: CircularProgressIndicator(
-              //           color: Color(0xFFFFD700),
-              //           strokeWidth: 4,
-              //         ),
-              //       ),
-              //       const SizedBox(height: 20),
-              //       Text(
-              //         'LOADING...',
-              //         style: TextStyle(
-              //           fontSize: 20,
-              //           fontWeight: FontWeight.bold,
-              //           color: const Color(0xFFFFD700),
-              //           letterSpacing: 3,
-              //         ),
-              //       ),
-              //     ],
-              //   ),
-              // ),
-            ],
+            ),
           ),
-        ),
+
+          // Loading progress at bottom
+          Positioned(
+            bottom: 100,
+            left: 40,
+            right: 40,
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Column(
+                children: [
+                  // Loading text
+                  const Text(
+                    'LOADING...',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 4,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black,
+                          offset: Offset(0, 3),
+                          blurRadius: 6,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Progress bar container
+                  Container(
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: const Color(0xFFFFD700),
+                        width: 2,
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Stack(
+                        children: [
+                          // Progress fill
+                          FractionallySizedBox(
+                            widthFactor: _progress,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFFFFD700),
+                                    Color(0xFFFF8C00),
+                                  ],
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFFFFD700,
+                                    ).withOpacity(0.6),
+                                    blurRadius: 8,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Progress percentage
+                  Text(
+                    '${(_progress * 100).toInt()}%',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFFFD700),
+                      shadows: [
+                        Shadow(
+                          color: Colors.black,
+                          offset: Offset(0, 2),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

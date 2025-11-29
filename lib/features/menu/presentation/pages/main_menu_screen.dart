@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../../../core/utils/audio_manager.dart';
+import '../../../../core/widgets/page_transitions.dart';
+import '../../../achievements/persentation/pages/achievements_screen.dart';
 import '../../../game/presentation/widgets/level_selector_screen.dart';
+import 'package:flutter/material.dart';
+import '../../../inventory/presentation/pages/invertory_screen.dart';
+import '../../../settings/presentation/pages/settings_screen.dart';
+import '../../../shop/presentation/pages/shop_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 class MenuScreen extends StatelessWidget {
   const MenuScreen({Key? key}) : super(key: key);
@@ -56,65 +64,127 @@ class MenuScreen extends StatelessWidget {
                       SizedBox(height: isSmall ? 40 : 60),
 
                       // Play button
-                      _buildButton(
-                        context: context,
-                        icon: Icons.play_arrow,
-                        label: "O'YNASH",
-                        color: const Color(0xFF00FF00),
-                        onTap: () {
-                          SoundService().playClick();
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const LevelSelectorScreen(),
-                            ),
-                          );
-                        },
+                      AnimatedCard(
+                        delay: 100,
+                        child: _buildButton(
+                          context: context,
+                          icon: Icons.play_arrow,
+                          label: "PLAY",
+                          color: const Color(0xFF00FF00),
+                          onTap: () {
+                            SoundService().playClick();
+                            Navigator.of(context).push(
+                              PageTransitions.slideFromRight(
+                                const LevelSelectorScreen(),
+                              ),
+                            );
+                          },
+                        ),
                       ),
 
                       const SizedBox(height: 16),
 
                       // Levels button
-                      _buildButton(
-                        context: context,
-                        icon: Icons.format_list_numbered,
-                        label: "DARAJALAR",
-                        color: const Color(0xFF00BFFF),
-                        onTap: () {
-                          SoundService().playClick();
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const LevelSelectorScreen(),
-                            ),
-                          );
-                        },
+                      AnimatedCard(
+                        delay: 200,
+                        child: _buildButton(
+                          context: context,
+                          icon: Icons.format_list_numbered,
+                          label: "LEVELS",
+                          color: const Color(0xFF00BFFF),
+                          onTap: () {
+                            SoundService().playClick();
+                            Navigator.of(context).push(
+                              PageTransitions.slideFromRight(
+                                const LevelSelectorScreen(),
+                              ),
+                            );
+                          },
+                        ),
                       ),
 
                       const SizedBox(height: 16),
 
                       // Achievements button
-                      _buildButton(
-                        context: context,
-                        icon: Icons.emoji_events,
-                        label: "YUTUQLAR",
-                        color: const Color(0xFFFFD700),
-                        onTap: () {
-                          SoundService().playClick();
-                          _showComingSoon(context);
-                        },
+                      AnimatedCard(
+                        delay: 300,
+                        child: _buildButton(
+                          context: context,
+                          icon: Icons.emoji_events,
+                          label: "ACHIEVEMENTS",
+                          color: const Color(0xFFFFD700),
+                          onTap: () {
+                            SoundService().playClick();
+                            Navigator.of(context).push(
+                              PageTransitions.fadeIn(
+                                const AchievementsScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Inventory button
+                      AnimatedCard(
+                        delay: 400,
+                        child: _buildButton(
+                          context: context,
+                          icon: Icons.inventory,
+                          label: "INVENTORY",
+                          color: const Color(0xFF9C27B0),
+                          onTap: () {
+                            SoundService().playClick();
+                            Navigator.of(context).push(
+                              PageTransitions.fadeIn(
+                                const InventoryScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Shop button
+                      AnimatedCard(
+                        delay: 500,
+                        child: _buildButton(
+                          context: context,
+                          icon: Icons.shopping_bag,
+                          label: "SHOP",
+                          color: const Color(0xFFE91E63),
+                          onTap: () {
+                            SoundService().playClick();
+                            Navigator.of(context).push(
+                              PageTransitions.fadeIn(
+                                const ShopScreen(),
+                              ),
+                            );
+                          },
+                        ),
                       ),
 
                       const SizedBox(height: 16),
 
                       // Settings button
-                      _buildButton(
-                        context: context,
-                        icon: Icons.settings,
-                        label: "SOZLAMALAR",
-                        color: const Color(0xFFB0B0B0),
-                        onTap: () {
-                          SoundService().playClick();
-                          _showSettings(context);
-                        },
+                      AnimatedCard(
+                        delay: 600,
+                        child: _buildButton(
+                          context: context,
+                          icon: Icons.settings,
+                          label: "SETTINGS",
+                          color: const Color(0xFFB0B0B0),
+                          onTap: () {
+                            SoundService().playClick();
+                            Navigator.of(context).push(
+                              PageTransitions.slideFromBottom(
+                                const SettingsScreen(),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),

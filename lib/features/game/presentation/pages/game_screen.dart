@@ -254,7 +254,7 @@ class _GameScreenState extends State<GameScreen> {
                             child: AspectRatio(
                               aspectRatio: 6 / 7,
                               child: Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 16),
+                                margin: const EdgeInsets.symmetric(horizontal: 8),
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
@@ -278,11 +278,11 @@ class _GameScreenState extends State<GameScreen> {
                                 ),
                                 child: GridView.builder(
                                   physics: const NeverScrollableScrollPhysics(),
-                                  padding: const EdgeInsets.all(2),
+                                  padding: const EdgeInsets.all(4),
                                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: 6,
-                                    mainAxisSpacing: 2,
-                                    crossAxisSpacing: 2,
+                                    mainAxisSpacing: 4,
+                                    crossAxisSpacing: 4,
                                     childAspectRatio: 1.0,
                                   ),
                                   itemCount: 42,

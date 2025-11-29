@@ -12,6 +12,10 @@ class SoundService {
     _isMuted = !_isMuted;
   }
 
+  void setMuted(bool muted) {
+    _isMuted = muted;
+  }
+
   bool get isMuted => _isMuted;
 
   Future<void> playClick() => _playSound('click.mp3');
