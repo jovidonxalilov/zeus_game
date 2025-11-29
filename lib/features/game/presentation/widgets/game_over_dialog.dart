@@ -1,160 +1,166 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../../core/themes/app_theme.dart';
-import '../../../../core/utils/game_utils.dart';
 
-/// Game over dialog
 class GameOverDialog extends StatelessWidget {
   final bool isVictory;
   final int score;
-  final int stars;
   final int targetScore;
   final VoidCallback onRestart;
-  final VoidCallback? onNextLevel;
+  final VoidCallback onNextLevel;
   final VoidCallback onMenu;
-  
+
   const GameOverDialog({
-    super.key,
+    Key? key,
     required this.isVictory,
     required this.score,
-    required this.stars,
     required this.targetScore,
     required this.onRestart,
-    this.onNextLevel,
+    required this.onNextLevel,
     required this.onMenu,
-  });
-  
+  }) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
         padding: const EdgeInsets.all(24),
-        decoration: AppTheme.goldenBorder,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isVictory
+                ? [Colors.purple.shade700, Colors.purple.shade900]
+                : [Colors.red.shade700, Colors.red.shade900],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isVictory ? Colors.yellow : Colors.orange,
+            width: 3,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: (isVictory ? Colors.yellow : Colors.orange).withOpacity(0.4),
+              blurRadius: 20,
+              spreadRadius: 5,
+            ),
+          ],
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Icon
+            TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 600),
+              tween: Tween(begin: 0.0, end: 1.0),
+              curve: Curves.elasticOut,
+              builder: (context, value, child) {
+                return Transform.scale(
+                  scale: value,
+                  child: child,
+                );
+              },
+              child: Icon(
+                isVictory ? Icons.emoji_events : Icons.cancel,
+                color: isVictory ? Colors.yellow : Colors.orange,
+                size: 80,
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
             // Title
             Text(
               isVictory ? 'G\'ALABA!' : 'MAG\'LUBIYAT',
               style: TextStyle(
                 fontSize: 36,
                 fontWeight: FontWeight.bold,
-                color: isVictory
-                    ? AppConstants.primaryGold
-                    : AppConstants.secondaryOrange,
+                color: isVictory ? Colors.yellow : Colors.orange,
               ),
-            ).animate().scale(duration: 500.ms, curve: Curves.elasticOut),
-            
+            ),
+
             const SizedBox(height: 24),
-            
-            // Stars (only for victory)
-            if (isVictory)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(3, (index) {
-                  return Icon(
-                    index < stars ? Icons.star : Icons.star_border,
-                    color: AppConstants.primaryGold,
-                    size: 48,
-                  ).animate(delay: (index * 200).ms).scale(
-                        duration: 300.ms,
-                        curve: Curves.elasticOut,
-                      );
-                }),
-              ),
-            
-            const SizedBox(height: 24),
-            
-            // Score info
+
+            // Score
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppConstants.darkPurple.withOpacity(0.3),
+                color: Colors.black.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppConstants.primaryGold.withOpacity(0.3),
-                  width: 2,
-                ),
               ),
               child: Column(
                 children: [
-                  _buildScoreRow('Sizning ballingiz', GameUtils.formatScore(score)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Sizning ballingiz:',
+                        style: TextStyle(color: Colors.white70, fontSize: 16),
+                      ),
+                      Text(
+                        score.toString(),
+                        style: const TextStyle(
+                          color: Colors.yellow,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 8),
-                  _buildScoreRow('Maqsad', GameUtils.formatScore(targetScore)),
-                  if (isVictory) ...[
-                    const SizedBox(height: 8),
-                    _buildScoreRow(
-                      'Foiz',
-                      '${((score / targetScore) * 100).toInt()}%',
-                    ),
-                  ],
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Maqsad:',
+                        style: TextStyle(color: Colors.white70, fontSize: 16),
+                      ),
+                      Text(
+                        targetScore.toString(),
+                        style: const TextStyle(
+                          color: Colors.orange,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-            
-            const SizedBox(height: 32),
-            
+
+            const SizedBox(height: 24),
+
             // Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                // Menu button
                 _buildButton(
                   icon: Icons.home,
                   label: 'Menu',
-                  color: AppConstants.darkPurple,
+                  color: Colors.blue,
                   onTap: onMenu,
                 ),
-                
-                // Restart button
                 _buildButton(
                   icon: Icons.refresh,
                   label: 'Qayta',
-                  color: AppConstants.secondaryOrange,
+                  color: Colors.orange,
                   onTap: onRestart,
                 ),
-                
-                // Next level button (only for victory)
-                if (isVictory && onNextLevel != null)
+                if (isVictory)
                   _buildButton(
                     icon: Icons.arrow_forward,
                     label: 'Keyingi',
-                    color: AppConstants.primaryGold,
-                    onTap: onNextLevel!,
+                    color: Colors.green,
+                    onTap: onNextLevel,
                   ),
               ],
             ),
           ],
         ),
-      ).animate().scale(duration: 500.ms, curve: Curves.elasticOut),
+      ),
     );
   }
-  
-  Widget _buildScoreRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 16,
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            color: AppConstants.primaryGold,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-  
+
   Widget _buildButton({
     required IconData icon,
     required String label,
@@ -185,6 +191,6 @@ class GameOverDialog extends StatelessWidget {
           ],
         ),
       ),
-    ).animate().shimmer(duration: 2.seconds);
+    );
   }
 }

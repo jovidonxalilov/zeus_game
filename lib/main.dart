@@ -1,68 +1,63 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'core/themes/app_theme.dart';
 import 'core/utils/audio_manager.dart';
 import 'core/utils/storage_manager.dart';
 import 'features/menu/presentation/pages/main_menu_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize managers
-  await _initializeApp();
-  
-  // Set preferred orientations
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-  
-  // Set system UI overlay style
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-    ),
-  );
-  
-  runApp(const ZeusGameApp());
+
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  runApp(const ZeusApp());
 }
 
-Future<void> _initializeApp() async {
-  try {
-    // Initialize storage
-    await StorageManager().initialize();
-    
-    // Initialize audio (don't crash if it fails)
-    try {
-      await AudioManager().initialize();
-    } catch (e) {
-      print('Warning: Audio initialization failed: $e');
-      print('Game will continue without audio.');
-    }
-  } catch (e) {
-    debugPrint('Error initializing app: $e');
-  }
-}
+class ZeusApp extends StatelessWidget {
+  const ZeusApp({Key? key}) : super(key: key);
 
-class ZeusGameApp extends StatelessWidget {
-  const ZeusGameApp({super.key});
-  
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'ZEUS - Rise of Olympus',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      home: const SplashScreen(),
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        primaryColor: Colors.purple,
+        fontFamily: 'Roboto',
+      ),
+      home: SplashScreen(),
     );
   }
 }
 
-/// Splash screen with loading animation
+// class ZeusGameApp extends StatelessWidget {
+//   const ZeusGameApp({super.key});
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return ScreenUtilInit(
+//       designSize: const Size(375, 812),
+//       minTextAdapt: true,
+//       splitScreenMode: true,
+//       child: MaterialApp(
+//         title: 'ZEUS - Rise of Olympus',
+//         debugShowCheckedModeBanner: false,
+//         theme: AppTheme.darkTheme,
+//         home: const SplashScreen(),
+//       ),
+//     );
+//   }
+// }
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
-  
+
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
@@ -71,43 +66,39 @@ class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
-  
+
   @override
   void initState() {
     super.initState();
-    
+
     _controller = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
     );
-    
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeIn,
-      ),
-    );
-    
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
+
     _controller.forward();
-    
+
     // Navigate to main menu after splash
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const MainMenuScreen(),
-          ),
+          MaterialPageRoute(builder: (context) => const MenuScreen()),
         );
       }
     });
   }
-  
+
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -118,10 +109,7 @@ class _SplashScreenState extends State<SplashScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              const Color(0xFF4B0082),
-              const Color(0xFF1A1A1A),
-            ],
+            colors: [const Color(0xFF4B0082), const Color(0xFF1A1A1A)],
           ),
         ),
         child: FadeTransition(
@@ -150,7 +138,7 @@ class _SplashScreenState extends State<SplashScreen>
                   },
                 ),
               ),
-              
+
               // Zeus Icon (center)
               Center(
                 child: Column(
@@ -163,10 +151,7 @@ class _SplashScreenState extends State<SplashScreen>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFFFFD700),
-                            Color(0xFFFF8C00),
-                          ],
+                          colors: [Color(0xFFFFD700), Color(0xFFFF8C00)],
                         ),
                         boxShadow: [
                           BoxShadow(
@@ -182,15 +167,16 @@ class _SplashScreenState extends State<SplashScreen>
                         color: Color(0xFF1A1A1A),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 40),
-                    
+
                     // ZEUS text
                     const Text(
                       'ZEUS',
                       style: TextStyle(
                         fontSize: 72,
                         fontWeight: FontWeight.bold,
+
                         color: Color(0xFFFFD700),
                         shadows: [
                           Shadow(
@@ -201,9 +187,9 @@ class _SplashScreenState extends State<SplashScreen>
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 12),
-                    
+
                     const Text(
                       'Rise of Olympus',
                       style: TextStyle(
@@ -215,7 +201,7 @@ class _SplashScreenState extends State<SplashScreen>
                   ],
                 ),
               ),
-              
+
               // Loading indicator
               Positioned(
                 bottom: 80,

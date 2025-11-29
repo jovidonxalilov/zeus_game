@@ -1,379 +1,437 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:zeus_game/features/game/presentation/widgets/tutorial_dialog.dart';
-import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/audio_manager.dart';
 import '../../domain/entities/gem.dart';
 import '../bloc/game_bloc.dart';
 import '../bloc/game_event.dart';
-import '../bloc/game_state.dart' as bloc_state;
+import '../bloc/game_state.dart';
 import '../widgets/gem_widget.dart';
-import '../widgets/game_header.dart';
-import '../widgets/zeus_power_bar.dart';
+import '../widgets/score_display.dart';
+import '../widgets/moves_counter.dart';
 import '../widgets/game_over_dialog.dart';
 
-/// Main game screen
 class GameScreen extends StatefulWidget {
   final int level;
-  
-  const GameScreen({super.key, required this.level});
-  
+
+  const GameScreen({Key? key, this.level = 1}) : super(key: key);
+
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
 class _GameScreenState extends State<GameScreen> {
   Gem? selectedGem;
-  bool _tutorialShown = false;
-  
+  Gem? dragStartGem;
+  Offset dragOffset = Offset.zero;
+
   @override
   void initState() {
     super.initState();
-    context.read<GameBloc>().add(InitializeGameEvent(widget.level));
-    
-    // Show tutorial after a short delay
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (mounted && !_tutorialShown && widget.level == 1) {
-        _tutorialShown = true;
-        _showTutorial();
-      }
+    context.read<GameBloc>().add(InitGameEvent(level: widget.level));
+  }
+
+  void _onGemTapped(Gem gem) {
+    final currentState = context.read<GameBloc>().state;
+
+    // Don't allow tapping during processing
+    if (currentState is GameProcessing) {
+      print('⏸️  Processing - wait...');
+      return;
+    }
+
+    SoundService().playClick();
+    print('\n👆 GEM TAPPED: ${gem.id}');
+    print('Selected: ${selectedGem?.id}');
+
+    if (selectedGem == null) {
+      // First selection
+      print('✅ First selection');
+      setState(() => selectedGem = gem);
+    } else if (selectedGem!.id == gem.id) {
+      // Deselect same gem
+      print('❌ Deselecting');
+      setState(() => selectedGem = null);
+    } else {
+      // Second selection - attempt swap
+      print('✅ Second selection - attempting swap');
+
+      context.read<GameBloc>().add(SwapGemsEvent(
+        selectedGem!.row,
+        selectedGem!.col,
+        gem.row,
+        gem.col,
+      ));
+
+      setState(() => selectedGem = null);
+    }
+  }
+
+  void _onDragUpdate(Gem gem, DragUpdateDetails details) {
+    if (dragStartGem == null) {
+      setState(() {
+        dragStartGem = gem;
+        selectedGem = gem;
+      });
+    }
+
+    setState(() {
+      dragOffset += details.delta;
     });
   }
-  
-  void _showTutorial() {
+
+  void _onDragEnd(Gem gem) {
+    if (dragStartGem == null) return;
+
+    final currentState = context.read<GameBloc>().state;
+    if (currentState is GameProcessing) {
+      setState(() {
+        dragStartGem = null;
+        dragOffset = Offset.zero;
+        selectedGem = null;
+      });
+      return;
+    }
+
+    // Determine direction
+    final dx = dragOffset.dx.abs();
+    final dy = dragOffset.dy.abs();
+
+    if (dx > 30 || dy > 30) {
+      int targetRow = dragStartGem!.row;
+      int targetCol = dragStartGem!.col;
+
+      if (dx > dy) {
+        // Horizontal
+        targetCol += dragOffset.dx > 0 ? 1 : -1;
+      } else {
+        // Vertical
+        targetRow += dragOffset.dy > 0 ? 1 : -1;
+      }
+
+      // Check bounds
+      if (targetRow >= 0 && targetRow < 7 && targetCol >= 0 && targetCol < 6) {
+        print('🖐️ DRAG SWAP: (${dragStartGem!.row}, ${dragStartGem!.col}) → ($targetRow, $targetCol)');
+
+        context.read<GameBloc>().add(SwapGemsEvent(
+          dragStartGem!.row,
+          dragStartGem!.col,
+          targetRow,
+          targetCol,
+        ));
+      }
+    }
+
+    setState(() {
+      dragStartGem = null;
+      dragOffset = Offset.zero;
+      selectedGem = null;
+    });
+  }
+
+  void _showGameOverDialog(BuildContext context, bool isVictory, int score, int targetScore) {
+    final gameBloc = context.read<GameBloc>(); // Store bloc reference
+
     showDialog(
       context: context,
-      barrierDismissible: true,
-      builder: (context) => const TutorialDialog(),
+      barrierDismissible: false,
+      builder: (dialogContext) => GameOverDialog(
+        isVictory: isVictory,
+        score: score,
+        targetScore: targetScore,
+        onRestart: () {
+          Navigator.of(dialogContext).pop();
+          gameBloc.add(const RestartGameEvent()); // Use stored reference
+        },
+        onNextLevel: () {
+          Navigator.of(dialogContext).pop();
+          gameBloc.add(InitGameEvent(level: widget.level + 1)); // Use stored reference
+        },
+        onMenu: () {
+          Navigator.of(dialogContext).pop();
+          Navigator.of(context).pop();
+        },
+      ),
     );
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        width: double.infinity,
-        height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
+            colors: [
+              Colors.purple.shade900,
+              Colors.black,
+            ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              const Color(0xFF4B0082),
-              const Color(0xFF1A1A1A),
-            ],
           ),
         ),
         child: Stack(
           children: [
-            // Background image with error handling
+            // Background image
             Positioned.fill(
               child: Image.asset(
                 'assets/images/bg_1.png',
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return const SizedBox.shrink();
-                },
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
               ),
             ),
-            
+
             // Dark overlay
             Positioned.fill(
               child: Container(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withOpacity(0.3),
               ),
             ),
-            
+
             // Game content
             SafeArea(
-              child: BlocConsumer<GameBloc, bloc_state.GameBlocState>(
+              child: BlocConsumer<GameBloc, GameState>(
                 listener: (context, state) {
-                  if (state is bloc_state.GameOver) {
-                    _showGameOverDialog(context, state);
+                  if (state is GameWon) {
+                    SoundService().playVictory();
+                    Future.delayed(const Duration(milliseconds: 500), () {
+                      _showGameOverDialog(
+                        context,
+                        true,
+                        state.gameState.score,
+                        state.gameState.targetScore,
+                      );
+                    });
+                  } else if (state is GameLost) {
+                    SoundService().playFailure();
+                    Future.delayed(const Duration(milliseconds: 500), () {
+                      _showGameOverDialog(
+                        context,
+                        false,
+                        state.gameState.score,
+                        state.gameState.targetScore,
+                      );
+                    });
                   }
                 },
                 builder: (context, state) {
-                  if (state is bloc_state.GameLoading) {
+                  print('🎨 UI STATE: ${state.runtimeType}');
+
+                  if (state is GameLoading || state is GameInitial) {
                     return _buildLoading();
                   }
-                  
-                  if (state is bloc_state.GamePlaying || state is bloc_state.GameProcessing) {
-                    final gameState = state is bloc_state.GamePlaying
-                        ? (state as bloc_state.GamePlaying).gameState
-                        : (state as bloc_state.GameProcessing).gameState;
-                    
-                    final level = state is bloc_state.GamePlaying
-                        ? (state as bloc_state.GamePlaying).level
-                        : (state as bloc_state.GameProcessing).level;
-                    
+
+                  if (state is GameReady || state is GameProcessing) {
+                    final gameState = state is GameReady
+                        ? (state as GameReady).gameState
+                        : (state as GameProcessing).gameState;
+
                     return Column(
                       children: [
-                        // Header with padding
+                        // Header
+                        _buildHeader(gameState.level),
+
+                        const SizedBox(height: 12),
+
+                        // Score Display
                         Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: GameHeader(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: ScoreDisplay(
                             score: gameState.score,
                             targetScore: gameState.targetScore,
-                            moves: gameState.moves,
-                            level: level.id,
-                            onPause: () => context.read<GameBloc>().add(const PauseGameEvent()),
+                            progress: gameState.progress,
                           ),
                         ),
-                        
-                        const SizedBox(height: 8),
-                        
-                        // Game Grid - larger and centered
+
+                        const SizedBox(height: 12),
+
+                        // Moves Counter
+                        MovesCounter(moves: gameState.moves),
+
+                        const SizedBox(height: 16),
+
+                        // Grid
                         Expanded(
                           child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: _buildGameGrid(gameState.grid),
+                            child: AspectRatio(
+                              aspectRatio: 6 / 7,
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 16),
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.black.withOpacity(0.5),
+                                      Colors.purple.shade900.withOpacity(0.7),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: Colors.yellow.shade700,
+                                    width: 3,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.yellow.withOpacity(0.2),
+                                      blurRadius: 20,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                                child: GridView.builder(
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  padding: const EdgeInsets.all(2),
+                                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 6,
+                                    mainAxisSpacing: 2,
+                                    crossAxisSpacing: 2,
+                                    childAspectRatio: 1.0,
+                                  ),
+                                  itemCount: 42,
+                                  itemBuilder: (context, index) {
+                                    final row = index ~/ 6;
+                                    final col = index % 6;
+                                    final gem = gameState.grid[row][col];
+
+                                    return GemWidget(
+                                      gem: gem,
+                                      isSelected: selectedGem?.id == gem.id,
+                                      onTap: () => _onGemTapped(gem),
+                                      onDragUpdate: _onDragUpdate,
+                                      onDragEnd: _onDragEnd,
+                                    );
+                                  },
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                        
-                        const SizedBox(height: 8),
-                        
-                        // Zeus Powers with padding
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: ZeusPowerBar(
-                            energy: gameState.energy,
-                            maxEnergy: gameState.maxEnergy,
-                            onPowerUsed: (power, row, col) {
-                              context.read<GameBloc>().add(UseZeusPowerEvent(
-                                power: power,
-                                targetRow: row,
-                                targetCol: col,
-                              ));
-                            },
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 8),
+
+                        const SizedBox(height: 16),
+
+                        // Status text
+                        if (state is GameProcessing)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.yellow,
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                Text(
+                                  'Ishlanmoqda...',
+                                  style: TextStyle(
+                                    color: Colors.yellow,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          const SizedBox(height: 40),
                       ],
                     );
                   }
-                  
-                  if (state is bloc_state.GamePaused) {
-                    return _buildPausedScreen(context, state);
-                  }
-                  
-                  if (state is bloc_state.GameError) {
+
+                  if (state is GameError) {
                     return _buildError(state.message);
                   }
-                  
+
                   return const SizedBox.shrink();
                 },
               ),
             ),
-            
-            // Help button (floating)
-            Positioned(
-              top: 16,
-              right: 16,
-              child: SafeArea(
-                child: FloatingActionButton(
-                  mini: true,
-                  backgroundColor: const Color(0xFFFFD700),
-                  onPressed: _showTutorial,
-                  child: const Icon(
-                    Icons.help_outline,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),
     );
   }
-  
+
+  Widget _buildHeader(int level) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.yellow.shade700, Colors.orange.shade700],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.yellow.withOpacity(0.4),
+                  blurRadius: 10,
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.stars, color: Colors.white),
+                const SizedBox(width: 8),
+                Text(
+                  'DARAJA $level',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () {
+              context.read<GameBloc>().add(const RestartGameEvent());
+            },
+            icon: const Icon(Icons.refresh, color: Colors.white, size: 28),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLoading() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(
-            color: Color(0xFFFFD700),
-          ),
-          const SizedBox(height: 20),
+          CircularProgressIndicator(color: Colors.yellow),
+          SizedBox(height: 20),
           Text(
             'Yuklanmoqda...',
-            style: TextStyle(
-              color: const Color(0xFFFFD700),
-              fontSize: 18,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 18),
           ),
         ],
-      ).animate().fadeIn(duration: 500.ms),
-    );
-  }
-  
-  Widget _buildGameGrid(List<List<Gem>> grid) {
-    return AspectRatio(
-      aspectRatio: AppConstants.gridColumns / AppConstants.gridRows,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.3),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: const Color(0xFFFFD700).withOpacity(0.5),
-            width: 2,
-          ),
-        ),
-        child: GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(4),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: AppConstants.gridColumns,
-            mainAxisSpacing: 6,
-            crossAxisSpacing: 6,
-            childAspectRatio: 1,
-          ),
-          itemCount: AppConstants.gridRows * AppConstants.gridColumns,
-          itemBuilder: (context, index) {
-            final row = index ~/ AppConstants.gridColumns;
-            final col = index % AppConstants.gridColumns;
-            final gem = grid[row][col];
-            
-            return GemWidget(
-              gem: gem,
-              isSelected: selectedGem?.id == gem.id,
-              onTap: () => _onGemTapped(gem),
-            );
-          },
-        ),
       ),
     );
   }
-  
-  void _onGemTapped(Gem gem) {
-    if (selectedGem == null) {
-      setState(() {
-        selectedGem = gem;
-      });
-    } else {
-      // Try to swap
-      context.read<GameBloc>().add(SwapGemsEvent(
-        fromRow: selectedGem!.row,
-        fromCol: selectedGem!.column,
-        toRow: gem.row,
-        toCol: gem.column,
-      ));
-      
-      setState(() {
-        selectedGem = null;
-      });
-    }
-  }
-  
-  Widget _buildPausedScreen(BuildContext context, bloc_state.GamePaused state) {
-    return Center(
-      child: Container(
-        margin: const EdgeInsets.all(32),
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: const Color(0xFF4B0082).withOpacity(0.95),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFFFD700), width: 3),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'TO\'XTATILDI',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFFFFD700),
-              ),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () => context.read<GameBloc>().add(const ResumeGameEvent()),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFD700),
-                foregroundColor: const Color(0xFF1A1A1A),
-                minimumSize: const Size(200, 50),
-              ),
-              child: const Text('Davom ettirish'),
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton(
-              onPressed: () => context.read<GameBloc>().add(const RestartGameEvent()),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: const Color(0xFFFFD700), width: 2),
-                minimumSize: const Size(200, 50),
-              ),
-              child: const Text('Qaytadan boshlash'),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Menuga qaytish'),
-            ),
-          ],
-        ),
-      ).animate().scale(duration: 300.ms, curve: Curves.easeOut),
-    );
-  }
-  
+
   Widget _buildError(String message) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: const Color(0xFFFF8C00),
-          ),
+          const Icon(Icons.error, color: Colors.red, size: 64),
           const SizedBox(height: 20),
           Text(
             message,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-            ),
+            style: const TextStyle(color: Colors.white, fontSize: 18),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Orqaga'),
-          ),
         ],
-      ),
-    );
-  }
-  
-  void _showGameOverDialog(BuildContext context, bloc_state.GameOver state) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => GameOverDialog(
-        isVictory: state.isVictory,
-        score: state.finalScore,
-        stars: state.stars,
-        targetScore: state.level.targetScore,
-        onRestart: () {
-          Navigator.of(context).pop();
-          context.read<GameBloc>().add(const RestartGameEvent());
-        },
-        onNextLevel: state.isVictory
-            ? () {
-                Navigator.of(context).pop();
-                context.read<GameBloc>().add(InitializeGameEvent(state.level.id + 1));
-              }
-            : null,
-        onMenu: () {
-          Navigator.of(context).pop();
-          Navigator.of(context).pop();
-        },
       ),
     );
   }

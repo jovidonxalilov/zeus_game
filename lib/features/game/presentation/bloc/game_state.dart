@@ -1,95 +1,51 @@
 import 'package:equatable/equatable.dart';
-import '../../domain/entities/game_state.dart';
-import '../../domain/entities/level.dart';
+import '../../domain/model/state_model.dart';
 
-/// Base game BLoC state
-abstract class GameBlocState extends Equatable {
-  const GameBlocState();
-  
+abstract class GameState extends Equatable {
+  const GameState();
   @override
   List<Object?> get props => [];
 }
 
-/// Initial state
-class GameInitial extends GameBlocState {
+class GameInitial extends GameState {
   const GameInitial();
 }
 
-/// Loading state
-class GameLoading extends GameBlocState {
+class GameLoading extends GameState {
   const GameLoading();
 }
 
-/// Playing state
-class GamePlaying extends GameBlocState {
-  final GameState gameState;
-  final Level level;
-  
-  const GamePlaying({
-    required this.gameState,
-    required this.level,
-  });
-  
+class GameReady extends GameState {
+  final GameStateModel gameState;
+  const GameReady(this.gameState);
   @override
-  List<Object?> get props => [gameState, level];
+  List<Object?> get props => [gameState];
 }
 
-/// Processing state (animations, matches)
-class GameProcessing extends GameBlocState {
-  final GameState gameState;
-  final Level level;
-  final String? message;
-  
-  const GameProcessing({
-    required this.gameState,
-    required this.level,
-    this.message,
-  });
-  
+class GameProcessing extends GameState {
+  final GameStateModel gameState;
+  const GameProcessing(this.gameState);
   @override
-  List<Object?> get props => [gameState, level, message];
+  List<Object?> get props => [gameState];
 }
 
-/// Paused state
-class GamePaused extends GameBlocState {
-  final GameState gameState;
-  final Level level;
-  
-  const GamePaused({
-    required this.gameState,
-    required this.level,
-  });
-  
+class GameWon extends GameState {
+  final GameStateModel gameState;
+  const GameWon(this.gameState);
   @override
-  List<Object?> get props => [gameState, level];
+  List<Object?> get props => [gameState];
 }
 
-/// Game over state
-class GameOver extends GameBlocState {
-  final GameState gameState;
-  final Level level;
-  final bool isVictory;
-  final int stars;
-  final int finalScore;
-  
-  const GameOver({
-    required this.gameState,
-    required this.level,
-    required this.isVictory,
-    required this.stars,
-    required this.finalScore,
-  });
-  
+class GameLost extends GameState {
+  final GameStateModel gameState;
+  const GameLost(this.gameState);
   @override
-  List<Object?> get props => [gameState, level, isVictory, stars, finalScore];
+  List<Object?> get props => [gameState];
 }
 
-/// Error state
-class GameError extends GameBlocState {
+class GameError extends GameState {
   final String message;
-  
   const GameError(this.message);
-  
   @override
   List<Object?> get props => [message];
 }

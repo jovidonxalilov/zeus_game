@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// Tutorial dialog - o'yinni qanday o'ynashni ko'rsatadi
 class TutorialDialog extends StatelessWidget {
@@ -9,7 +10,7 @@ class TutorialDialog extends StatelessWidget {
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: const Color(0xFF4B0082),
           borderRadius: BorderRadius.circular(24),
@@ -29,13 +30,13 @@ class TutorialDialog extends StatelessWidget {
               // Title
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children:  [
                   Icon(Icons.help_outline, color: Color(0xFFFFD700), size: 32),
                   SizedBox(width: 12),
                   Text(
                     'QANDAY O\'YNASH?',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFFFFD700),
                     ),
@@ -43,7 +44,7 @@ class TutorialDialog extends StatelessWidget {
                 ],
               ),
               
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
               
               // Step 1
               _buildStep(

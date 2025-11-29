@@ -10,11 +10,11 @@ import '../../../game/presentation/bloc/game_bloc.dart';
 /// Map screen - level selection
 class MapScreen extends StatelessWidget {
   const MapScreen({super.key});
-  
+
   @override
   Widget build(BuildContext context) {
     final levels = LevelData.allLevels;
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -32,7 +32,7 @@ class MapScreen extends StatelessWidget {
             children: [
               // Header
               _buildHeader(context),
-              
+
               // Levels grid
               Expanded(
                 child: ListView.builder(
@@ -50,7 +50,7 @@ class MapScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildHeader(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -78,11 +78,11 @@ class MapScreen extends StatelessWidget {
       ),
     ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.2, duration: 500.ms);
   }
-  
+
   Widget _buildLevelCard(BuildContext context, Level level, int index) {
     final isLocked = level.status == LevelStatus.locked;
     final isCompleted = level.status == LevelStatus.completed;
-    
+
     return GestureDetector(
       onTap: isLocked
           ? null
@@ -155,9 +155,9 @@ class MapScreen extends StatelessWidget {
                       ),
               ),
             ),
-            
+
             const SizedBox(width: 16),
-            
+
             // Level info
             Expanded(
               child: Column(
@@ -206,7 +206,7 @@ class MapScreen extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // Stars
             if (isCompleted)
               Column(
@@ -238,7 +238,7 @@ class MapScreen extends StatelessWidget {
           .slideX(begin: -0.2, duration: 500.ms),
     );
   }
-  
+
   Widget _buildInfoChip({
     required IconData icon,
     required String value,

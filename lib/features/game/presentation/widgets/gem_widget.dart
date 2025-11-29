@@ -1,136 +1,197 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import '../../../../core/constants/app_constants.dart';
 import '../../domain/entities/gem.dart';
 
-/// Gem widget - o'yin toshi
-class GemWidget extends StatelessWidget {
+class GemWidget extends StatefulWidget {
   final Gem gem;
   final bool isSelected;
   final VoidCallback onTap;
-  
+  final Function(Gem, DragUpdateDetails)? onDragUpdate;
+  final Function(Gem)? onDragEnd;
+
   const GemWidget({
-    super.key,
+    Key? key,
     required this.gem,
     required this.isSelected,
     required this.onTap,
-  });
-  
+    this.onDragUpdate,
+    this.onDragEnd,
+  }) : super(key: key);
+
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: gem.isMatched ? null : onTap,
-      child: AnimatedContainer(
-        duration: AppConstants.swapDuration,
-        curve: Curves.easeInOut,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? const Color(0xFFFFD700) : Colors.transparent,
-            width: isSelected ? 4 : 2,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFFFFD700).withOpacity(0.6),
-                    blurRadius: 15,
-                    spreadRadius: 3,
-                  ),
-                ]
-              : [],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.asset(
-            _getGemAsset(),
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              // Fallback to colored container if image fails
-              return Container(
-                decoration: BoxDecoration(
-                  color: _getFallbackColor(),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  _getFallbackIcon(),
-                  color: Colors.white,
-                  size: 24,
-                ),
-              );
-            },
-          ),
-        ),
-      )
-          .animate(target: gem.isMatched ? 1 : 0)
-          .scale(end: const Offset(0.1, 0.1), duration: AppConstants.matchDuration)
-          .fadeOut(duration: AppConstants.matchDuration)
-          .animate(target: gem.isFalling ? 1 : 0)
-          .slideY(begin: -5, duration: AppConstants.fallDuration),
+  State<GemWidget> createState() => _GemWidgetState();
+}
+
+class _GemWidgetState extends State<GemWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _rotationAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    _rotationAnimation = Tween<double>(begin: 0.0, end: 0.05).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
   }
-  
-  String _getGemAsset() {
-    switch (gem.type) {
-      case GemType.lightning:
-        return 'assets/images/el1_1.png';
-      case GemType.wings:
-        return 'assets/images/el3_1.png';
-      case GemType.temple:
-        return 'assets/images/el5_1.png';
-      case GemType.lyre:
-        return 'assets/images/el4_1.png';
-      case GemType.red:
-        return 'assets/images/el6_1.png';
-      case GemType.blue:
-        return 'assets/images/el1_1.png';
-      case GemType.green:
-        return 'assets/images/el2_1.png';
-      case GemType.yellow:
-        return 'assets/images/el3_1.png';
-      case GemType.purple:
-        return 'assets/images/el6_1.png';
-      case GemType.cyan:
-        return 'assets/images/el4_1.png';
+
+  @override
+  void didUpdateWidget(GemWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSelected && !oldWidget.isSelected) {
+      _controller.forward();
+    } else if (!widget.isSelected && oldWidget.isSelected) {
+      _controller.reverse();
     }
   }
-  
-  Color _getFallbackColor() {
-    switch (gem.type) {
-      case GemType.lightning:
-        return const Color(0xFF00BFFF);
-      case GemType.wings:
-        return const Color(0xFFFFD700);
-      case GemType.temple:
-        return const Color(0xFFFF8C00);
-      case GemType.lyre:
-        return const Color(0xFF9370DB);
-      case GemType.red:
-        return const Color(0xFFFF0000);
-      case GemType.blue:
-        return const Color(0xFF0000FF);
-      case GemType.green:
-        return const Color(0xFF00FF00);
-      case GemType.yellow:
-        return const Color(0xFFFFFF00);
-      case GemType.purple:
-        return const Color(0xFF800080);
-      case GemType.cyan:
-        return const Color(0xFF00FFFF);
-    }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
-  
-  IconData _getFallbackIcon() {
-    switch (gem.type) {
-      case GemType.lightning:
-        return Icons.flash_on;
-      case GemType.wings:
-        return Icons.airplanemode_active;
-      case GemType.temple:
-        return Icons.account_balance;
-      case GemType.lyre:
-        return Icons.music_note;
-      default:
-        return Icons.circle;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.gem.isMatched) {
+      return TweenAnimationBuilder<double>(
+        duration: const Duration(milliseconds: 300),
+        tween: Tween(begin: 1.0, end: 0.0),
+        builder: (context, value, child) {
+          return Transform.scale(
+            scale: value,
+            child: Opacity(
+              opacity: value,
+              child: child,
+            ),
+          );
+        },
+        child: _buildGem(),
+      );
+    }
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _scaleAnimation.value,
+          child: Transform.rotate(
+            angle: _rotationAnimation.value,
+            child: child,
+          ),
+        );
+      },
+      child: _buildGem(),
+    );
+  }
+
+  Widget _buildGem() {
+    return GestureDetector(
+      onTap: widget.gem.isMatched ? null : widget.onTap,
+      onPanUpdate: widget.gem.isMatched ? null : (details) {
+        widget.onDragUpdate?.call(widget.gem, details);
+      },
+      onPanEnd: widget.gem.isMatched ? null : (_) {
+        widget.onDragEnd?.call(widget.gem);
+      },
+      child: Container(
+        margin: const EdgeInsets.all(1),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: widget.isSelected
+                ? Colors.yellow
+                : Colors.white.withOpacity(0.2),
+            width: widget.isSelected ? 3 : 1,
+          ),
+          boxShadow: widget.isSelected
+              ? [
+            BoxShadow(
+              color: Colors.yellow.withOpacity(0.8),
+              blurRadius: 20,
+              spreadRadius: 4,
+            ),
+          ]
+              : [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipOval(
+          child: Stack(
+            children: [
+              // Gem image
+              Positioned.fill(
+                child: Image.asset(
+                  _getGemImage(),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) {
+                    // Fallback to color circle
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: widget.gem.color,
+                        gradient: RadialGradient(
+                          colors: [
+                            widget.gem.color.withOpacity(0.9),
+                            widget.gem.color,
+                            widget.gem.color.withOpacity(0.7),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // Shine overlay
+              if (!widget.gem.isMatched)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        colors: [
+                          Colors.white.withOpacity(0.3),
+                          Colors.transparent,
+                        ],
+                        stops: const [0.0, 0.5],
+                        center: const Alignment(-0.3, -0.3),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getGemImage() {
+    switch (widget.gem.type) {
+      case GemType.red:
+        return 'assets/gems/gem_red.png';
+      case GemType.blue:
+        return 'assets/gems/gem_blue.png';
+      case GemType.green:
+        return 'assets/gems/gem_green.png';
+      case GemType.cyan:
+        return 'assets/gems/gem_cyan.png';
+      case GemType.yellow:
+        return 'assets/gems/gem_red.png'; // Reuse red
+      case GemType.purple:
+        return 'assets/gems/gem_blue.png'; // Reuse blue
     }
   }
 }

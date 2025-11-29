@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/themes/app_theme.dart';
 import '../../../../core/utils/game_utils.dart';
@@ -64,7 +65,7 @@ class GameHeader extends StatelessWidget {
             ],
           ),
           
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           
           // Score and Target
           Row(
@@ -85,7 +86,7 @@ class GameHeader extends StatelessWidget {
             ],
           ),
           
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           
           // Progress bar
           Column(
@@ -111,7 +112,7 @@ class GameHeader extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: LinearProgressIndicator(
@@ -147,7 +148,7 @@ class GameHeader extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: color, size: 24),
-          const SizedBox(width: 8),
+          SizedBox(width: 8.w),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
