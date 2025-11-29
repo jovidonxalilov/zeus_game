@@ -7,11 +7,42 @@ import 'package:flutter/material.dart';
 import '../../../inventory/presentation/pages/invertory_screen.dart';
 import '../../../settings/presentation/pages/settings_screen.dart';
 import '../../../shop/presentation/pages/shop_screen.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
 
-class MenuScreen extends StatelessWidget {
+class MenuScreen extends StatefulWidget {
   const MenuScreen({Key? key}) : super(key: key);
+
+  @override
+  State<MenuScreen> createState() => _MenuScreenState();
+}
+
+class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+  late Animation<double> _rotationAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    )..repeat(reverse: true);
+    
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    
+    _rotationAnimation = Tween<double>(begin: -0.05, end: 0.05).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -198,74 +229,151 @@ class MenuScreen extends StatelessWidget {
   }
 
   Widget _buildLogo(bool isSmall) {
-    return Column(
-      children: [
-        // Lightning icon
-        Container(
-          width: isSmall ? 120 : 160,
-          height: isSmall ? 120 : 160,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [
-                const Color(0xFFFFD700),
-                const Color(0xFFFF8C00),
-              ],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFFFD700).withOpacity(0.6),
-                blurRadius: 40,
-                spreadRadius: 15,
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, child) {
+        return Column(
+          children: [
+            // Animated Lightning icon with beautiful effects
+            Transform.rotate(
+              angle: _rotationAnimation.value,
+              child: Transform.scale(
+                scale: _pulseAnimation.value,
+                child: Container(
+                  width: isSmall ? 140 : 180,
+                  height: isSmall ? 140 : 180,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        const Color(0xFFFFFFFF),
+                        const Color(0xFFFFD700),
+                        const Color(0xFFFF8C00),
+                      ],
+                      stops: const [0.0, 0.5, 1.0],
+                    ),
+                    boxShadow: [
+                      // Outer glow
+                      BoxShadow(
+                        color: const Color(0xFFFFD700).withOpacity(0.8),
+                        blurRadius: 60,
+                        spreadRadius: 20,
+                      ),
+                      // Inner bright glow
+                      BoxShadow(
+                        color: const Color(0xFFFFFFFF).withOpacity(0.6),
+                        blurRadius: 40,
+                        spreadRadius: 10,
+                      ),
+                      // Pulsing glow
+                      BoxShadow(
+                        color: const Color(0xFFFF8C00).withOpacity(_pulseAnimation.value - 0.85),
+                        blurRadius: 80,
+                        spreadRadius: 30,
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      // Lightning image
+                      ClipOval(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: RadialGradient(
+                              colors: [
+                                const Color(0xFFFFFFFF).withOpacity(0.3),
+                                Colors.transparent,
+                              ],
+                            ),
+                          ),
+                          child: Image.asset(
+                            'assets/images/el1_1.png',
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) {
+                              return Center(
+                                child: Icon(
+                                  Icons.flash_on,
+                                  size: isSmall ? 70 : 90,
+                                  color: Colors.white,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      // Shine overlay
+                      Positioned.fill(
+                        child: ClipOval(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: RadialGradient(
+                                colors: [
+                                  Colors.white.withOpacity(0.4),
+                                  Colors.transparent,
+                                ],
+                                center: const Alignment(-0.4, -0.4),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ],
-          ),
-          child: ClipOval(
-            child: Image.asset(
-              'assets/images/el1_1.png',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) {
-                return const Icon(
-                  Icons.flash_on,
-                  size: 80,
-                  color: Colors.white,
-                );
-              },
             ),
-          ),
-        ),
 
-        const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
-        // ZEUS title
-        Text(
-          "ZEUS",
-          style: TextStyle(
-            fontSize: isSmall ? 56 : 72,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFFFFD700),
-            shadows: [
-              Shadow(
-                color: const Color(0xFFFF8C00),
-                offset: const Offset(0, 4),
-                blurRadius: 8,
+            // ZEUS title with enhanced shadow
+            Text(
+              "ZEUS",
+              style: TextStyle(
+                fontSize: isSmall ? 60 : 76,
+                fontWeight: FontWeight.w900,
+                color: const Color(0xFFFFD700),
+                shadows: [
+                  Shadow(
+                    color: const Color(0xFFFF8C00),
+                    offset: const Offset(0, 4),
+                    blurRadius: 8,
+                  ),
+                  Shadow(
+                    color: Colors.black,
+                    offset: const Offset(0, 6),
+                    blurRadius: 12,
+                  ),
+                  Shadow(
+                    color: const Color(0xFFFFD700).withOpacity(0.5),
+                    offset: const Offset(0, 0),
+                    blurRadius: 20,
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
 
-        const SizedBox(height: 8),
+            const SizedBox(height: 8),
 
-        // Subtitle
-        Text(
-          "Rise of Olympus",
-          style: TextStyle(
-            fontSize: isSmall ? 16 : 20,
-            color: const Color(0xFFF5F5DC),
-            letterSpacing: 2,
-          ),
-        ),
-      ],
+            // Subtitle with glow
+            Text(
+              "Rise of Olympus",
+              style: TextStyle(
+                fontSize: isSmall ? 17 : 22,
+                color: const Color(0xFFF5F5DC),
+                letterSpacing: 3,
+                fontWeight: FontWeight.w300,
+                shadows: const [
+                  Shadow(
+                    color: Colors.black,
+                    offset: Offset(0, 2),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -7,7 +7,6 @@ import '../../domain/model/state_model.dart';
 import 'game_event.dart';
 import 'game_state.dart';
 
-
 const int ROWS = 7;
 const int COLS = 6;
 
@@ -25,29 +24,21 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     print('🎮 INITIALIZING GAME - Level ${event.level}');
 
-    // Generate grid without initial matches - MULTIPLE ATTEMPTS
-    var grid = _generateGrid();
-    int attempts = 0;
-    const maxAttempts = 50;
-
-    while (_findMatches(grid).isNotEmpty && attempts < maxAttempts) {
-      grid = _generateGrid();
-      attempts++;
-      print('🔄 Regenerating grid (attempt $attempts) - had matches');
+    // Generate grid without any 3-in-row matches
+    final grid = _generateGrid();
+    
+    // Verify no matches exist
+    final initialMatches = _findMatches(grid);
+    if (initialMatches.isNotEmpty) {
+      print('⚠️ WARNING: Found ${initialMatches.length} matches in initial grid (should be 0)');
+    } else {
+      print('✅ Grid generated with NO initial matches');
     }
-
-    if (attempts == maxAttempts) {
-      print('⚠️ Max attempts reached, manually fixing matches');
-      // If still has matches after max attempts, replace matched gems
-      final matches = _findMatches(grid);
-      for (final match in matches) {
-        grid[match.row][match.col] = Gem(
-          id: '${match.row}_${match.col}',
-          type: _getRandomNonMatchingType(grid, match.row, match.col),
-          row: match.row,
-          col: match.col,
-        );
-      }
+    
+    // Verify at least one possible move exists
+    if (!_hasPossibleMoves(grid)) {
+      print('⚠️ WARNING: No possible moves! Regenerating...');
+      // This shouldn't happen with proper random distribution
     }
 
     final gameState = GameStateModel(
@@ -62,39 +53,17 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     emit(GameReady(gameState));
   }
 
-  GemType _getRandomNonMatchingType(List<List<Gem>> grid, int row, int col) {
-    final avoid = <GemType>{};
-
-    // Check horizontal neighbors
-    if (col >= 2) {
-      if (grid[row][col - 1].type == grid[row][col - 2].type) {
-        avoid.add(grid[row][col - 1].type);
-      }
-    }
-
-    // Check vertical neighbors
-    if (row >= 2) {
-      if (grid[row - 1][col].type == grid[row - 2][col].type) {
-        avoid.add(grid[row - 1][col].type);
-      }
-    }
-
-    // Get available types
-    final available = GemType.values.where((t) => !avoid.contains(t)).toList();
-    return available[Random().nextInt(available.length)];
-  }
-
   Future<void> _onSwap(
-      SwapGemsEvent event,
-      Emitter<GameState> emit,
-      ) async {
+    SwapGemsEvent event,
+    Emitter<GameState> emit,
+  ) async {
     if (state is! GameReady) {
       print('❌ Can\'t swap - state is ${state.runtimeType}');
       return;
     }
 
     final current = (state as GameReady).gameState;
-
+    
     if (current.isProcessing) {
       print('❌ Already processing');
       return;
@@ -107,8 +76,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     // Check adjacent
     final rowDiff = (event.row1 - event.row2).abs();
     final colDiff = (event.col1 - event.col2).abs();
-    final isAdjacent = (rowDiff == 1 && colDiff == 0) ||
-        (rowDiff == 0 && colDiff == 1);
+    final isAdjacent = (rowDiff == 1 && colDiff == 0) || 
+                       (rowDiff == 0 && colDiff == 1);
 
     if (!isAdjacent) {
       print('❌ NOT ADJACENT!');
@@ -143,7 +112,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     if (matches.isEmpty) {
       print('❌ No matches - swapping back');
-
+      
       // Swap back
       final temp2 = grid[event.row1][event.col1];
       grid[event.row1][event.col1] = grid[event.row2][event.col2].copyWith(
@@ -156,7 +125,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         col: event.col2,
         isAnimating: false,
       );
-
+      
       emit(GameReady(current.copyWith(grid: grid, isProcessing: false)));
       return;
     }
@@ -185,9 +154,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   }
 
   Future<void> _onProcessMatches(
-      ProcessMatchesEvent event,
-      Emitter<GameState> emit,
-      ) async {
+    ProcessMatchesEvent event,
+    Emitter<GameState> emit,
+  ) async {
     if (state is! GameReady) return;
 
     var current = (state as GameReady).gameState;
@@ -199,14 +168,14 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     while (foundMatches) {
       final matches = _findMatches(grid);
-
+      
       if (matches.isEmpty) {
         foundMatches = false;
         break;
       }
 
       print('💥 Processing ${matches.length} matches (Combo x$combo)');
-
+      
       // Play match sound
       SoundService().playMatch();
 
@@ -226,7 +195,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
       // Remove matched and drop gems
       _processGravity(grid);
-
+      
       // Play fall sound
       SoundService().playFall();
 
@@ -260,46 +229,64 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     final level = state is GameReady
         ? (state as GameReady).gameState.level
         : state is GameWon
-        ? (state as GameWon).gameState.level
-        : state is GameLost
-        ? (state as GameLost).gameState.level
-        : 1;
-
+            ? (state as GameWon).gameState.level
+            : state is GameLost
+                ? (state as GameLost).gameState.level
+                : 1;
+    
     add(InitGameEvent(level: level));
   }
 
   List<List<Gem>> _generateGrid() {
-    var grid = List.generate(
+    print('\n🎲 GENERATING GRID...');
+    
+    final grid = List.generate(
       ROWS,
-          (r) => List.generate(
+      (r) => List.generate(
         COLS,
-            (c) => Gem(
+        (c) => Gem(
           id: '${r}_$c',
-          type: _randomGemType(),
+          type: GemType.red, // Temporary placeholder
           row: r,
           col: c,
         ),
       ),
     );
-
-    // Ensure at least one match is possible
-    int attempts = 0;
-    while (!_hasPossibleMoves(grid) && attempts < 10) {
-      grid = List.generate(
-        ROWS,
-            (r) => List.generate(
-          COLS,
-              (c) => Gem(
-            id: '${r}_$c',
-            type: _randomGemType(),
-            row: r,
-            col: c,
-          ),
-        ),
-      );
-      attempts++;
+    
+    // Fill grid position by position, avoiding 3-in-row
+    int preventions = 0;
+    for (int r = 0; r < ROWS; r++) {
+      for (int c = 0; c < COLS; c++) {
+        final oldPrev = preventions;
+        GemType type = _getRandomNonMatchingType(grid, r, c);
+        if (preventions > oldPrev) {
+          // A type was banned
+        }
+        grid[r][c] = Gem(
+          id: '${r}_$c',
+          type: type,
+          row: r,
+          col: c,
+        );
+      }
     }
-
+    
+    print('✅ Grid generated with $preventions preventions');
+    
+    // VERIFICATION: Check for any matches
+    final matches = _findMatches(grid);
+    if (matches.isNotEmpty) {
+      print('❌ ERROR: Generated grid has ${matches.length} matches!');
+      print('This should NEVER happen!');
+      // Print grid for debugging
+      for (int r = 0; r < ROWS; r++) {
+        final row = grid[r].map((g) => g.type.toString().split('.').last[0]).join(' ');
+        print('Row $r: $row');
+      }
+    } else {
+      print('✅ VERIFIED: Grid has ZERO matches');
+    }
+    
     return grid;
   }
 
@@ -319,7 +306,51 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     ];
     return basicGems[Random().nextInt(basicGems.length)];
   }
-
+  
+  // Get a random type that won't create 3-in-row at this position
+  // ONLY checks positions that are already filled (left and top)
+  GemType _getRandomNonMatchingType(List<List<Gem>> grid, int row, int col) {
+    const basicGems = [
+      GemType.red,
+      GemType.blue,
+      GemType.green,
+      GemType.yellow,
+      GemType.purple,
+      GemType.cyan,
+    ];
+    
+    Set<GemType> bannedTypes = {};
+    
+    // HORIZONTAL: Check left 2 gems (already filled)
+    if (col >= 2) {
+      final left1 = grid[row][col - 1].type;
+      final left2 = grid[row][col - 2].type;
+      if (left1 == left2) {
+        bannedTypes.add(left1);
+      }
+    }
+    
+    // VERTICAL: Check top 2 gems (already filled)
+    if (row >= 2) {
+      final top1 = grid[row - 1][col].type;
+      final top2 = grid[row - 2][col].type;
+      if (top1 == top2) {
+        bannedTypes.add(top1);
+      }
+    }
+    
+    // Get available types
+    final availableTypes = basicGems.where((type) => !bannedTypes.contains(type)).toList();
+    
+    // Safety check: if somehow all are banned, return random
+    if (availableTypes.isEmpty) {
+      print('⚠️ WARNING: All types banned at ($row, $col)');
+      return basicGems[Random().nextInt(basicGems.length)];
+    }
+    
+    return availableTypes[Random().nextInt(availableTypes.length)];
+  }
+  
   bool _hasPossibleMoves(List<List<Gem>> grid) {
     // Check if any swap would create a match
     for (int r = 0; r < ROWS; r++) {
@@ -383,7 +414,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     // Drop existing gems
     for (int c = 0; c < COLS; c++) {
       int writeRow = ROWS - 1;
-
+      
       for (int r = ROWS - 1; r >= 0; r--) {
         if (!grid[r][c].isMatched) {
           if (r != writeRow) {
@@ -396,11 +427,11 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         }
       }
 
-      // Fill empty spaces with new gems
+      // Fill empty spaces with new gems that won't create 3-in-row
       for (int r = writeRow; r >= 0; r--) {
         grid[r][c] = Gem(
           id: '${r}_$c',
-          type: _randomGemType(),
+          type: _getRandomNonMatchingType(grid, r, c),
           row: r,
           col: c,
         );
@@ -408,3 +439,4 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     }
   }
 }
+

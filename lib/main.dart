@@ -134,6 +134,7 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -142,7 +143,7 @@ class _SplashScreenState extends State<SplashScreen>
         children: [
           // Background temple image (bg_1.png)
           Image.asset(
-            'assets/images/bg 1.png',
+            'assets/images/bg_1.png',
             fit: BoxFit.cover,
             errorBuilder: (_, __, ___) {
               return Container(
@@ -167,7 +168,7 @@ class _SplashScreenState extends State<SplashScreen>
               scale: _scaleAnimation,
               child: Center(
                 child: Image.asset(
-                  'assets/images/character 1.png',
+                  'assets/images/character_1.png',
                   height: MediaQuery.of(context).size.height * 0.6,
                   fit: BoxFit.contain,
                   errorBuilder: (_, __, ___) => const SizedBox.shrink(),
@@ -246,6 +247,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ),
                   ),
+
 
                   const SizedBox(height: 12),
 
