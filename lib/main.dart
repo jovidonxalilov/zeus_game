@@ -1,14 +1,7 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'core/themes/app_theme.dart';
-import 'core/utils/audio_manager.dart';
-import 'core/utils/storage_manager.dart';
 import 'features/menu/presentation/pages/main_menu_screen.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,25 +28,6 @@ class ZeusApp extends StatelessWidget {
     );
   }
 }
-
-// class ZeusGameApp extends StatelessWidget {
-//   const ZeusGameApp({super.key});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return ScreenUtilInit(
-//       designSize: const Size(375, 812),
-//       minTextAdapt: true,
-//       splitScreenMode: true,
-//       child: MaterialApp(
-//         title: 'ZEUS - Rise of Olympus',
-//         debugShowCheckedModeBanner: false,
-//         theme: AppTheme.darkTheme,
-//         home: const SplashScreen(),
-//       ),
-//     );
-//   }
-// }
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -140,96 +114,96 @@ class _SplashScreenState extends State<SplashScreen>
               ),
 
               // Zeus Icon (center)
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Zeus lightning icon
-                    Container(
-                      width: 150,
-                      height: 150,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFFD700), Color(0xFFFF8C00)],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFFFD700).withOpacity(0.6),
-                            blurRadius: 40,
-                            spreadRadius: 15,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.flash_on,
-                        size: 100,
-                        color: Color(0xFF1A1A1A),
-                      ),
-                    ),
-
-                    const SizedBox(height: 40),
-
-                    // ZEUS text
-                    const Text(
-                      'ZEUS',
-                      style: TextStyle(
-                        fontSize: 72,
-                        fontWeight: FontWeight.bold,
-
-                        color: Color(0xFFFFD700),
-                        shadows: [
-                          Shadow(
-                            color: Color(0xFFFF8C00),
-                            offset: Offset(0, 4),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    const Text(
-                      'Rise of Olympus',
-                      style: TextStyle(
-                        fontSize: 24,
-                        color: Color(0xFFF5F5DC),
-                        letterSpacing: 3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // Center(
+              //   child: Column(
+              //     mainAxisAlignment: MainAxisAlignment.center,
+              //     children: [
+              //       // Zeus lightning icon
+              //       Container(
+              //         width: 150,
+              //         height: 150,
+              //         decoration: BoxDecoration(
+              //           shape: BoxShape.circle,
+              //           gradient: const LinearGradient(
+              //             colors: [Color(0xFFFFD700), Color(0xFFFF8C00)],
+              //           ),
+              //           boxShadow: [
+              //             BoxShadow(
+              //               color: const Color(0xFFFFD700).withOpacity(0.6),
+              //               blurRadius: 40,
+              //               spreadRadius: 15,
+              //             ),
+              //           ],
+              //         ),
+              //         child: const Icon(
+              //           Icons.flash_on,
+              //           size: 100,
+              //           color: Color(0xFF1A1A1A),
+              //         ),
+              //       ),
+              //
+              //       const SizedBox(height: 40),
+              //
+              //       // ZEUS text
+              //       // const Text(
+              //       //   'ZEUS',
+              //       //   style: TextStyle(
+              //       //     fontSize: 72,
+              //       //     fontWeight: FontWeight.bold,
+              //       //
+              //       //     color: Color(0xFFFFD700),
+              //       //     shadows: [
+              //       //       Shadow(
+              //       //         color: Color(0xFFFF8C00),
+              //       //         offset: Offset(0, 4),
+              //       //         blurRadius: 8,
+              //       //       ),
+              //       //     ],
+              //       //   ),
+              //       // ),
+              //
+              //       const SizedBox(height: 12),
+              //
+              //       const Text(
+              //         'Rise of Olympus',
+              //         style: TextStyle(
+              //           fontSize: 24,
+              //           color: Color(0xFFF5F5DC),
+              //           letterSpacing: 3,
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
 
               // Loading indicator
-              Positioned(
-                bottom: 80,
-                left: 0,
-                right: 0,
-                child: Column(
-                  children: [
-                    const SizedBox(
-                      width: 50,
-                      height: 50,
-                      child: CircularProgressIndicator(
-                        color: Color(0xFFFFD700),
-                        strokeWidth: 4,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'LOADING...',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFFFFD700),
-                        letterSpacing: 3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // Positioned(
+              //   bottom: 80,
+              //   left: 0,
+              //   right: 0,
+              //   child: Column(
+              //     children: [
+              //       const SizedBox(
+              //         width: 50,
+              //         height: 50,
+              //         child: CircularProgressIndicator(
+              //           color: Color(0xFFFFD700),
+              //           strokeWidth: 4,
+              //         ),
+              //       ),
+              //       const SizedBox(height: 20),
+              //       Text(
+              //         'LOADING...',
+              //         style: TextStyle(
+              //           fontSize: 20,
+              //           fontWeight: FontWeight.bold,
+              //           color: const Color(0xFFFFD700),
+              //           letterSpacing: 3,
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
             ],
           ),
         ),
