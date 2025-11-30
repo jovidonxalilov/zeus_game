@@ -30,7 +30,7 @@ class MovesCounter extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'HARAKATLAR',
+                'MOVEMENTS',
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 10,

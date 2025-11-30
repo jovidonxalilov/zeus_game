@@ -40,13 +40,13 @@ class ScoreDisplay extends StatelessWidget {
             children: [
               _buildStatItem(
                 icon: Icons.star,
-                label: 'BALL',
+                label: 'SCORE',
                 value: score.toString(),
                 color: Colors.yellow,
               ),
               _buildStatItem(
                 icon: Icons.flag,
-                label: 'MAQSAD',
+                label: 'TARGET',
                 value: targetScore.toString(),
                 color: Colors.orange,
               ),

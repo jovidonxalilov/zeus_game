@@ -28,31 +28,34 @@ class Power {
     Power(
       type: PowerType.thunderStrike,
       name: 'Thunder Strike',
-      description: 'Ustunni yo\'q qiladi',
+      description: 'Destroys a single column',
       icon: Icons.flash_on,
       color: Color(0xFF00BFFF),
       cost: 3,
     ),
+
     Power(
       type: PowerType.chainLightning,
       name: 'Chain Lightning',
-      description: 'Zanjir reaktsiya',
+      description: 'Triggers a chain reaction',
       icon: Icons.electric_bolt,
       color: Color(0xFFFFD700),
       cost: 5,
     ),
+
     Power(
       type: PowerType.skyWings,
       name: 'Sky Wings Dash',
-      description: 'Diagonal yo\'q qilish',
+      description: 'Clears diagonally',
       icon: Icons.airplanemode_active,
       color: Color(0xFF9C27B0),
       cost: 4,
     ),
+
     Power(
       type: PowerType.wrathOfOlympus,
       name: 'Wrath of Olympus',
-      description: 'Yarim maydonni tozalash',
+      description: 'Cleans half of the board',
       icon: Icons.auto_awesome,
       color: Color(0xFFFF6F00),
       cost: 10,

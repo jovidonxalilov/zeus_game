@@ -8,14 +8,14 @@ class ZeusPowerBar extends StatelessWidget {
   final int energy;
   final int maxEnergy;
   final Function(ZeusPower power, int? row, int? col) onPowerUsed;
-  
+
   const ZeusPowerBar({
     super.key,
     required this.energy,
     required this.maxEnergy,
     required this.onPowerUsed,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -38,7 +38,7 @@ class ZeusPowerBar extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Zeus Energiyasi',
+                      'Zeus Energy',
                       style: TextStyle(
                         color: AppConstants.primaryGold,
                         fontSize: 14,
@@ -71,9 +71,9 @@ class ZeusPowerBar extends StatelessWidget {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Powers
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -82,28 +82,28 @@ class ZeusPowerBar extends StatelessWidget {
                 context: context,
                 power: ZeusPower.thunderStrike,
                 icon: Icons.flash_on,
-                label: 'Chaqmoq',
+                label: 'Strike',
                 cost: AppConstants.thunderStrikeCost,
               ),
               _buildPowerButton(
                 context: context,
                 power: ZeusPower.chainLightning,
                 icon: Icons.electric_bolt,
-                label: 'Zanjir',
+                label: 'Chain',
                 cost: AppConstants.chainLightningCost,
               ),
               _buildPowerButton(
                 context: context,
                 power: ZeusPower.skyWingsDash,
                 icon: Icons.airplanemode_active,
-                label: 'Qanotlar',
+                label: 'Wings',
                 cost: AppConstants.skyWingsCost,
               ),
               _buildPowerButton(
                 context: context,
                 power: ZeusPower.wrathOfOlympus,
                 icon: Icons.whatshot,
-                label: 'G\'azab',
+                label: 'Wrath',
                 cost: AppConstants.wrathOfOlympusCost,
               ),
             ],
@@ -112,7 +112,7 @@ class ZeusPowerBar extends StatelessWidget {
       ),
     ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.2, duration: 500.ms);
   }
-  
+
   Widget _buildPowerButton({
     required BuildContext context,
     required ZeusPower power,
@@ -121,23 +121,20 @@ class ZeusPowerBar extends StatelessWidget {
     required int cost,
   }) {
     final isEnabled = energy >= cost;
-    
+
     return Column(
       children: [
         GestureDetector(
           onTap: isEnabled
               ? () {
-                  if (power == ZeusPower.thunderStrike) {
-                    // Need to select column
-                    _showColumnSelector(context, power);
-                  } else if (power == ZeusPower.skyWingsDash) {
-                    // Need to select position
-                    _showPositionSelector(context, power);
-                  } else {
-                    // Direct use
-                    onPowerUsed(power, null, null);
-                  }
-                }
+            if (power == ZeusPower.thunderStrike) {
+              _showColumnSelector(context, power);
+            } else if (power == ZeusPower.skyWingsDash) {
+              _showPositionSelector(context, power);
+            } else {
+              onPowerUsed(power, null, null);
+            }
+          }
               : null,
           child: Container(
             width: 60,
@@ -155,12 +152,12 @@ class ZeusPowerBar extends StatelessWidget {
               ),
               boxShadow: isEnabled
                   ? [
-                      BoxShadow(
-                        color: AppConstants.primaryGold.withOpacity(0.5),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ]
+                BoxShadow(
+                  color: AppConstants.primaryGold.withOpacity(0.5),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
+              ]
                   : [],
             ),
             child: Icon(
@@ -193,14 +190,14 @@ class ZeusPowerBar extends StatelessWidget {
       ],
     );
   }
-  
+
   void _showColumnSelector(BuildContext context, ZeusPower power) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppConstants.darkPurple,
         title: Text(
-          'Ustunni tanlang',
+          'Select a Column',
           style: TextStyle(color: AppConstants.primaryGold),
         ),
         content: SizedBox(
@@ -243,24 +240,24 @@ class ZeusPowerBar extends StatelessWidget {
       ),
     );
   }
-  
+
   void _showPositionSelector(BuildContext context, ZeusPower power) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppConstants.darkPurple,
         title: Text(
-          'Joyni tanlang',
+          'Select Position',
           style: TextStyle(color: AppConstants.primaryGold),
         ),
         content: const Text(
-          'O\'yin maydonida joyni tanlang',
+          'Tap on a position in the game board.',
           style: TextStyle(color: Colors.white),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Bekor qilish'),
+            child: const Text('Cancel'),
           ),
         ],
       ),

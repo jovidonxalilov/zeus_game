@@ -35,7 +35,7 @@ class _GameScreenState extends State<GameScreen> {
 
     // Don't allow tapping during processing
     if (currentState is GameProcessing) {
-      print('⏸️  Processing - wait...');
+      print('⏸️ Processing - please wait...');
       return;
     }
 
@@ -53,7 +53,7 @@ class _GameScreenState extends State<GameScreen> {
       setState(() => selectedGem = null);
     } else {
       // Second selection - attempt swap
-      print('✅ Second selection - attempting swap');
+      print('✅ Second gem selected - attempting swap');
 
       context.read<GameBloc>().add(SwapGemsEvent(
         selectedGem!.row,
@@ -92,7 +92,7 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
 
-    // Determine direction
+    // Determine drag direction
     final dx = dragOffset.dx.abs();
     final dy = dragOffset.dy.abs();
 
@@ -101,14 +101,14 @@ class _GameScreenState extends State<GameScreen> {
       int targetCol = dragStartGem!.col;
 
       if (dx > dy) {
-        // Horizontal
+        // Horizontal swipe
         targetCol += dragOffset.dx > 0 ? 1 : -1;
       } else {
-        // Vertical
+        // Vertical swipe
         targetRow += dragOffset.dy > 0 ? 1 : -1;
       }
 
-      // Check bounds
+      // Bounds check
       if (targetRow >= 0 && targetRow < 7 && targetCol >= 0 && targetCol < 6) {
         print('🖐️ DRAG SWAP: (${dragStartGem!.row}, ${dragStartGem!.col}) → ($targetRow, $targetCol)');
 
@@ -129,7 +129,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _showGameOverDialog(BuildContext context, bool isVictory, int score, int targetScore) {
-    final gameBloc = context.read<GameBloc>(); // Store bloc reference
+    final gameBloc = context.read<GameBloc>();
 
     showDialog(
       context: context,
@@ -140,11 +140,11 @@ class _GameScreenState extends State<GameScreen> {
         targetScore: targetScore,
         onRestart: () {
           Navigator.of(dialogContext).pop();
-          gameBloc.add(const RestartGameEvent()); // Use stored reference
+          gameBloc.add(const RestartGameEvent());
         },
         onNextLevel: () {
           Navigator.of(dialogContext).pop();
-          gameBloc.add(InitGameEvent(level: widget.level + 1)); // Use stored reference
+          gameBloc.add(InitGameEvent(level: widget.level + 1));
         },
         onMenu: () {
           Navigator.of(dialogContext).pop();
@@ -231,7 +231,7 @@ class _GameScreenState extends State<GameScreen> {
 
                         const SizedBox(height: 12),
 
-                        // Score Display
+                        // Score display
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: ScoreDisplay(
@@ -243,7 +243,7 @@ class _GameScreenState extends State<GameScreen> {
 
                         const SizedBox(height: 12),
 
-                        // Moves Counter
+                        // Moves
                         MovesCounter(moves: gameState.moves),
 
                         const SizedBox(height: 16),
@@ -307,7 +307,7 @@ class _GameScreenState extends State<GameScreen> {
 
                         const SizedBox(height: 16),
 
-                        // Status text
+                        // Processing indicator
                         if (state is GameProcessing)
                           Container(
                             padding: const EdgeInsets.all(12),
@@ -324,7 +324,7 @@ class _GameScreenState extends State<GameScreen> {
                                 ),
                                 SizedBox(width: 12),
                                 Text(
-                                  'Ishlanmoqda...',
+                                  'Processing...',
                                   style: TextStyle(
                                     color: Colors.yellow,
                                     fontSize: 14,
@@ -382,7 +382,7 @@ class _GameScreenState extends State<GameScreen> {
                 const Icon(Icons.stars, color: Colors.white),
                 const SizedBox(width: 8),
                 Text(
-                  'DARAJA $level',
+                  'LEVEL $level',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -411,7 +411,7 @@ class _GameScreenState extends State<GameScreen> {
           CircularProgressIndicator(color: Colors.yellow),
           SizedBox(height: 20),
           Text(
-            'Yuklanmoqda...',
+            'Loading...',
             style: TextStyle(color: Colors.white, fontSize: 18),
           ),
         ],
@@ -436,3 +436,5 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 }
+
+

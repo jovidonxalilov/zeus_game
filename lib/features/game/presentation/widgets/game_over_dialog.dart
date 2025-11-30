@@ -39,7 +39,8 @@ class GameOverDialog extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: (isVictory ? Colors.yellow : Colors.orange).withOpacity(0.4),
+              color: (isVictory ? Colors.yellow : Colors.orange)
+                  .withOpacity(0.4),
               blurRadius: 20,
               spreadRadius: 5,
             ),
@@ -70,7 +71,7 @@ class GameOverDialog extends StatelessWidget {
 
             // Title
             Text(
-              isVictory ? 'G\'ALABA!' : 'MAG\'LUBIYAT',
+              isVictory ? 'VICTORY!' : 'DEFEAT',
               style: TextStyle(
                 fontSize: 36,
                 fontWeight: FontWeight.bold,
@@ -91,11 +92,17 @@ class GameOverDialog extends StatelessWidget {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Sizning ballingiz:',
+                    children: const [
+                      Text(
+                        'Your Score:',
                         style: TextStyle(color: Colors.white70, fontSize: 16),
                       ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const SizedBox(),
                       Text(
                         score.toString(),
                         style: const TextStyle(
@@ -109,11 +116,17 @@ class GameOverDialog extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Maqsad:',
+                    children: const [
+                      Text(
+                        'Target:',
                         style: TextStyle(color: Colors.white70, fontSize: 16),
                       ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const SizedBox(),
                       Text(
                         targetScore.toString(),
                         style: const TextStyle(
@@ -142,14 +155,14 @@ class GameOverDialog extends StatelessWidget {
                 ),
                 _buildButton(
                   icon: Icons.refresh,
-                  label: 'Qayta',
+                  label: 'Restart',
                   color: Colors.orange,
                   onTap: onRestart,
                 ),
                 if (isVictory)
                   _buildButton(
                     icon: Icons.arrow_forward,
-                    label: 'Keyingi',
+                    label: 'Next',
                     color: Colors.green,
                     onTap: onNextLevel,
                   ),
