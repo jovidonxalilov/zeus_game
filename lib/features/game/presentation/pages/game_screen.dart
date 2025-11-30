@@ -9,6 +9,7 @@ import '../widgets/gem_widget.dart';
 import '../widgets/score_display.dart';
 import '../widgets/moves_counter.dart';
 import '../widgets/game_over_dialog.dart';
+import '../widgets/tutorial_dialog.dart';
 
 class GameScreen extends StatefulWidget {
   final int level;
@@ -151,6 +152,13 @@ class _GameScreenState extends State<GameScreen> {
           Navigator.of(context).pop();
         },
       ),
+    );
+  }
+
+  void _showTutorialDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => const TutorialDialog(),
     );
   }
 
@@ -347,6 +355,9 @@ class _GameScreenState extends State<GameScreen> {
                 },
               ),
             ),
+
+            // Tutorial FAB (Floating Action Button)
+          
           ],
         ),
       ),
@@ -392,11 +403,38 @@ class _GameScreenState extends State<GameScreen> {
               ],
             ),
           ),
-          IconButton(
-            onPressed: () {
-              context.read<GameBloc>().add(const RestartGameEvent());
-            },
-            icon: const Icon(Icons.refresh, color: Colors.white, size: 28),
+          Row(
+            children: [
+              // Help button
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFFD700).withOpacity(0.4),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  onPressed: _showTutorialDialog,
+                  icon: const Icon(
+                    Icons.help_outline,
+                    color: Color(0xFFFFD700),
+                    size: 28,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Refresh button
+              IconButton(
+                onPressed: () {
+                  context.read<GameBloc>().add(const RestartGameEvent());
+                },
+                icon: const Icon(Icons.refresh, color: Colors.white, size: 28),
+              ),
+            ],
           ),
         ],
       ),
@@ -436,5 +474,3 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 }
-
-

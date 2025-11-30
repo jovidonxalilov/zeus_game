@@ -41,6 +41,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       isProcessing: false,
     );
 
+    print('✅ Game initialized with possible moves');
     emit(GameReady(gameState));
   }
 
@@ -168,6 +169,22 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       combo++;
     }
 
+    // ✅ CRITICAL FIX: Check for possible moves after refill
+    int reshuffleAttempts = 0;
+    while (!_hasPossibleMoves(grid) && reshuffleAttempts < 5) {
+      print('⚠️ No possible moves after refill! Reshuffling... (attempt ${reshuffleAttempts + 1})');
+      _shuffleGrid(grid);
+      reshuffleAttempts++;
+    }
+    
+    if (!_hasPossibleMoves(grid)) {
+      print('❌ Still no moves after reshuffling - regenerating entire grid');
+      // Last resort: regenerate grid
+      grid = _generateValidGrid();
+    } else {
+      print('✅ Grid has possible moves');
+    }
+
     // finalize
     final finalState = current.copyWith(grid: grid, score: totalScore, isProcessing: false);
 
@@ -224,6 +241,53 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     return grid;
   }
 
+  // Generate grid that is guaranteed valid (no matches, has possible moves)
+  List<List<Gem>> _generateValidGrid() {
+    List<List<Gem>> grid;
+    int attempts = 0;
+    do {
+      grid = _generateGrid();
+      attempts++;
+      if (attempts > 20) {
+        print('⚠️ Couldn\'t generate valid grid after 20 attempts, using best effort');
+        break;
+      }
+    } while (_findMatches(grid).isNotEmpty || !_hasPossibleMoves(grid));
+    
+    return grid;
+  }
+
+  // ✅ NEW: Shuffle grid to create new possible moves
+  void _shuffleGrid(List<List<Gem>> grid) {
+    final random = Random();
+    final allGems = <Gem>[];
+    
+    // Collect all gems
+    for (int r = 0; r < ROWS; r++) {
+      for (int c = 0; c < COLS; c++) {
+        allGems.add(grid[r][c]);
+      }
+    }
+    
+    // Shuffle
+    allGems.shuffle(random);
+    
+    // Place back with safe types to avoid immediate matches
+    int index = 0;
+    for (int r = 0; r < ROWS; r++) {
+      for (int c = 0; c < COLS; c++) {
+        final gem = allGems[index++];
+        grid[r][c] = Gem(
+          id: '${r}_$c',
+          type: _getSafeRandomType(grid, r, c),
+          row: r,
+          col: c,
+          specialType: gem.specialType, // Preserve special types
+        );
+      }
+    }
+  }
+
   // ----------------- UTILS -----------------
   List<List<Gem>> _copyGrid(List<List<Gem>> grid) {
     return List.generate(
@@ -267,11 +331,11 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       if (col >= 2 &&
           grid[row][col - 1].type == t &&
           grid[row][col - 2].type == t) return true;
-      // left + right
+      // left + right (only if right exists)
       if (col >= 1 && col < COLS - 1 &&
           grid[row][col - 1].type == t &&
           grid[row][col + 1].type == t) return true;
-      // right + right-right
+      // right + right-right (only if they exist)
       if (col < COLS - 2 &&
           grid[row][col + 1].type == t &&
           grid[row][col + 2].type == t) return true;
@@ -281,11 +345,11 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       if (row >= 2 &&
           grid[row - 1][col].type == t &&
           grid[row - 2][col].type == t) return true;
-      // up + down
+      // up + down (only if down exists)
       if (row >= 1 && row < ROWS - 1 &&
           grid[row - 1][col].type == t &&
           grid[row + 1][col].type == t) return true;
-      // down + down-down
+      // down + down-down (only if they exist)
       if (row < ROWS - 2 &&
           grid[row + 1][col].type == t &&
           grid[row + 2][col].type == t) return true;
@@ -542,4 +606,3 @@ class DetectionResult {
     required this.specialCreations,
   });
 }
-
